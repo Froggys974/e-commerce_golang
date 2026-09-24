@@ -1,0 +1,13 @@
+services:
+  go: 
+    build: .
+    tty: true
+    stdin_open: true
+    user: go 
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - GOENV=development
