@@ -76,7 +76,9 @@ Utilisation de [charm.land](https://charm.land) pour des interfaces réactives e
 docker compose up -d
 
 # Démarrer le serveur
-go run main.go server
+docker compose exec go air (air sert a lancer le serveur en mode watch, settings dans .air.toml)
+
+test client : curl (ip adress):8000/health, doit retourner "ok"
 
 # Lancer le client
 go run main.go client
