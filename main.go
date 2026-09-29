@@ -2,11 +2,11 @@ package main
 
 // commandes utiles :
 //
-// docker compose exec go go run .
+// docker compose exec go go run . (lancer directement via docker, pas besoin d'installer les packages)
 // docker compose exec go go mod tidy
 // go build -o go-test .
 
-// pour la demo :
+// pour la demo pas mal :
 // https://www.terminal.shop/
 // ssh terminal.shop
 
