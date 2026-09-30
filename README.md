@@ -78,13 +78,16 @@ docker compose up -d
 # Démarrer le serveur
 docker compose exec go air (air sert a lancer le serveur en mode watch, settings dans .air.toml)
 
-test client : curl (ip adress):8000/health, doit retourner "ok"
+test server : curl localhost:8000/health, doit retourner "ok"
 
 # Lancer le client
-go run main.go client
+docker compose exec go go run ./cmd/client
+# go run main.go client
+
 
 # Lancer l'interface admin
-go run main.go admin
+docker compose exec go go run ./cmd/admin
+# go run main.go admin
 ```
 
 ---

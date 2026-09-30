@@ -13,11 +13,16 @@ func Run() error {
         return err
     }
     defer database.Close()
-    fmt.Println("DB up & connected")
+    fmt.Printf("DB up & connected\n")
+
+    if err := db.Migrate(database); err != nil {
+        return err
+    }
+    fmt.Printf("Schema ok\n")
 
     mux := http.NewServeMux()
     mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("ok :)\n"))
+        w.Write([]byte("ok !\n"))
     })
 
     fmt.Println("Server on :8000")
