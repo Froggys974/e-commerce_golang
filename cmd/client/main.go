@@ -1,14 +1,14 @@
 package main
 
 import (
-    "fmt"
-    "os"
-    "github.com/Froggys974/e-commerce_golang/internal/client"
+	"fmt"
+	"github.com/Froggys974/e-commerce_golang/internal/client"
+	"os"
 )
 
 func main() {
-    if err:= client.Run(); err != nil {
-        fmt.Printf("Client error : %v", err)
-        os.Exit(1)
-    }
+	if err := client.Run(); err != nil {
+		fmt.Printf("Client error : %v", err)
+		os.Exit(1)
+	}
 }

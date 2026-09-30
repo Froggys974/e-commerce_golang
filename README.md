@@ -88,6 +88,9 @@ docker compose exec go go run ./cmd/client
 # Lancer l'interface admin
 docker compose exec go go run ./cmd/admin
 # go run main.go admin
+
+# Formatage du code
+docker compose exec go gofmt -w .
 ```
 
 ---

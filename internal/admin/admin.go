@@ -1,10 +1,10 @@
 package admin
 
 import (
-    "fmt"
+	"fmt"
 )
 
 func Run() error {
-    fmt.Println("admin : TODO")
-    return nil
+	fmt.Println("admin : TODO")
+	return nil
 }
