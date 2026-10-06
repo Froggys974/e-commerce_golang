@@ -1,2 +1,5 @@
 /.devcontainer
 .env
+.idea
+go-test
+tmp/
