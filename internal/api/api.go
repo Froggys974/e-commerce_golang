@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Froggys974/e-commerce_golang/internal/auth"
 	"github.com/Froggys974/e-commerce_golang/internal/db"
 )
 
@@ -21,6 +22,13 @@ func Run() error {
 	fmt.Printf("Schema ok\n")
 
 	mux := http.NewServeMux()
+
+	authHandler := auth.NewHandler(database)
+
+	// Branchement
+	mux.HandleFunc("POST /auth/register", authHandler.Register)
+	mux.HandleFunc("POST /auth/confirm", authHandler.Confirm)
+
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok !\n"))
 	})
