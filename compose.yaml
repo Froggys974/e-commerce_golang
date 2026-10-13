@@ -11,3 +11,28 @@ services:
       - .:/app
     environment:
       - GOENV=development
+
+  postgres:
+    image: postgres:14.24-alpine3.23
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgresuser
+      - POSTGRES_PASSWORD=postgrespwd
+      - POSTGRES_DB=postgresdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-go-data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    depends_on:
+      - postgres
+
+volumes:
+  postgres-go-data:
