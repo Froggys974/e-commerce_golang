@@ -1,8 +1,10 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/Froggys974/e-commerce_golang/internal/auth"
 	"github.com/Froggys974/e-commerce_golang/internal/db"
@@ -23,11 +25,16 @@ func Run() error {
 
 	mux := http.NewServeMux()
 
-	authHandler := auth.NewHandler(database)
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if len(jwtSecret) < 32 {
+		return errors.New("JWT_SECRET manquant ou invalide")
+	}
 
-	// Branchement
+	authHandler := auth.NewHandler(database, []byte(jwtSecret))
 	mux.HandleFunc("POST /auth/register", authHandler.Register)
 	mux.HandleFunc("POST /auth/confirm", authHandler.Confirm)
+	mux.HandleFunc("POST /auth/login", authHandler.Login)
+	mux.HandleFunc("GET /me", authHandler.RequireAuth(authHandler.Me))
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok !\n"))

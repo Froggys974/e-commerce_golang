@@ -11,6 +11,7 @@ services:
       - .:/app
     environment:
       - GOENV=development
+      - JWT_SECRET=${JWT_SECRET}
 
   postgres:
     image: postgres:14.24-alpine3.23

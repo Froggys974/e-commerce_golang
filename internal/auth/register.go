@@ -31,7 +31,7 @@ func (handler *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	email := strings.ToLower(strings.TrimSpace(request.Email))
 	parsedAddress, err := mail.ParseAddress(email)
 	if err != nil || parsedAddress.Address != email {
-		httpjson.Error(w, http.StatusBadRequest, "Si l'email est valide, un mail a été envoyé")
+		httpjson.Error(w, http.StatusBadRequest, "email invalide")
 		return
 	}
 
