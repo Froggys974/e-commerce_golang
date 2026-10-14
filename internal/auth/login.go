@@ -17,12 +17,6 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
-type loginResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int    `json:"expires_in"`
-}
-
 const invalidCredentialsMessage = "email ou mot de passe incorrect"
 
 func (handler *Handler) Login(w http.ResponseWriter, r *http.Request) {
@@ -55,6 +49,7 @@ func (handler *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(request.Password))
+
 	if err != nil {
 		httpjson.Error(w, http.StatusUnauthorized, invalidCredentialsMessage)
 		return
@@ -65,23 +60,11 @@ func (handler *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := handler.newAccessToken(userID, role)
+	tokens, err := handler.issueTokens(userID, role)
 	if err != nil {
-		log.Printf("login: access token: %v", err)
+		log.Printf("login: %v", err)
 		httpjson.Error(w, http.StatusInternalServerError, "Erreur serveur")
 		return
 	}
-
-	refreshToken, err := handler.newRefreshToken(userID)
-	if err != nil {
-		log.Printf("login: refresh token: %v", err)
-		httpjson.Error(w, http.StatusInternalServerError, "Erreur serveur")
-		return
-	}
-
-	httpjson.Write(w, http.StatusOK, loginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresIn:    int(accessTokenDuration.Seconds()),
-	})
+	httpjson.Write(w, http.StatusOK, tokens)
 }

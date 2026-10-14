@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -49,4 +50,28 @@ func (handler *Handler) newRefreshToken(userID int64) (string, error) {
 func hashToken(token string) string {
 	hashBytes := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(hashBytes[:])
+}
+
+type tokensResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"`
+}
+
+func (handler *Handler) issueTokens(userID int64, role string) (tokensResponse, error) {
+	accessToken, err := handler.newAccessToken(userID, role)
+	if err != nil {
+		return tokensResponse{}, fmt.Errorf("access token: %w", err)
+	}
+
+	refreshToken, err := handler.newRefreshToken(userID)
+	if err != nil {
+		return tokensResponse{}, fmt.Errorf("refresh token: %w", err)
+	}
+
+	return tokensResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    int(accessTokenDuration.Seconds()),
+	}, nil
 }
