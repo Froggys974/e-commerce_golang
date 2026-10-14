@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/mail"
-	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
@@ -28,14 +27,14 @@ func (handler *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := strings.ToLower(strings.TrimSpace(request.Email))
+	email := normalizeEmail(request.Email)
 	parsedAddress, err := mail.ParseAddress(email)
 	if err != nil || parsedAddress.Address != email {
 		httpjson.Error(w, http.StatusBadRequest, "email invalide")
 		return
 	}
 
-	if len(request.Password) < 8 || len(request.Password) > 72 {
+	if !isValidPassword(request.Password) {
 		httpjson.Error(w, http.StatusBadRequest, "Le mot de passe doit faire entre 8 et 72 octs")
 		return
 	}

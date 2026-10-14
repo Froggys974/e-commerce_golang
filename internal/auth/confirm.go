@@ -20,7 +20,7 @@ func (handler *Handler) Confirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := strings.ToLower(strings.TrimSpace(request.Email))
+	email := normalizeEmail(request.Email)
 	code := strings.TrimSpace(request.Code)
 
 	result, err := handler.database.Exec(

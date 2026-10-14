@@ -37,6 +37,8 @@ func Run() error {
 	mux.HandleFunc("GET /me", authHandler.RequireAuth(authHandler.Me))
 	mux.HandleFunc("POST /auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /auth/logout", authHandler.Logout)
+	mux.HandleFunc("POST /auth/forgot", authHandler.Forgot)
+	mux.HandleFunc("POST /auth/reset", authHandler.Reset)
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok !\n"))

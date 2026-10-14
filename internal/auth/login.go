@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -26,7 +25,7 @@ func (handler *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := strings.ToLower(strings.TrimSpace(request.Email))
+	email := normalizeEmail(request.Email)
 
 	var (
 		userID       int64
