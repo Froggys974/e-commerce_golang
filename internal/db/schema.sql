@@ -3,11 +3,14 @@ CREATE TABLE IF NOT EXISTS users (
     email            TEXT UNIQUE NOT NULL,
     password_hash    TEXT NOT NULL,
     role             TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-    confirmed        BOOLEAN NOT NULL DEFAULT false,
-    confirm_code     TEXT,
-    reset_code       TEXT,
-    reset_expires_at TIMESTAMPTZ,
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+    confirmed          BOOLEAN NOT NULL DEFAULT false,
+    confirm_code       TEXT,
+    confirm_expires_at TIMESTAMPTZ,
+    confirm_attempts   INTEGER NOT NULL DEFAULT 0,
+    reset_code         TEXT,
+    reset_expires_at   TIMESTAMPTZ,
+    reset_attempts     INTEGER NOT NULL DEFAULT 0,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS refresh_tokens (

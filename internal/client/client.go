@@ -1,8 +1,9 @@
 package client
 
 import (
-	tea "charm.land/bubbletea/v2"
 	"fmt"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 type model struct {

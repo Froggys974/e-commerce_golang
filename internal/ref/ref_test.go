@@ -25,3 +25,24 @@ func TestNew(t *testing.T) {
 		}
 	}
 }
+
+func TestCode(t *testing.T) {
+	testCases := []struct {
+		length int
+		want   string
+	}{
+		{1, `^[A-HJ-NP-Z2-9]{1}$`},
+		{8, `^[A-HJ-NP-Z2-9]{8}$`},
+		{0, `^$`},
+	}
+
+	for _, testCase := range testCases {
+		pattern := regexp.MustCompile(testCase.want)
+		for range 1000 {
+			generated := Code(testCase.length)
+			if !pattern.MatchString(generated) {
+				t.Fatalf("Code(%d) = %q, format invalide", testCase.length, generated)
+			}
+		}
+	}
+}

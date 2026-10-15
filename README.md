@@ -72,13 +72,16 @@ Utilisation de [charm.land](https://charm.land) pour des interfaces réactives e
 ## Lancement
 
 ```bash
+# Copier les variables d'environnement (à faire une seule fois)
+cp .env.example .env
+
 # Démarrer la base de données
 docker compose up -d
 
 # Démarrer le serveur
 docker compose exec go air (air sert a lancer le serveur en mode watch, settings dans .air.toml)
 
-test server : curl localhost:8000/health, doit retourner "ok"
+test server : curl localhost:8000/health, doit retourner {"status":"ok"}
 
 # Lancer le client
 docker compose exec go go run ./cmd/client

@@ -3,70 +3,45 @@ package auth
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
-
 	"github.com/Froggys974/e-commerce_golang/internal/httpjson"
+	"github.com/Froggys974/e-commerce_golang/internal/user"
 )
 
-type contextKey string
-
-const userContextKey contextKey = "user"
-
-type AuthenticatedUser struct {
-	ID   int64
-	Role string
-}
+type contextKey struct{}
 
 func (handler *Handler) RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		authorizationHeader := r.Header.Get("Authorization")
-		tokenString, hasBearerPrefix := strings.CutPrefix(authorizationHeader, "Bearer ")
-		if !hasBearerPrefix || tokenString == "" {
+		token, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if !ok || token == "" {
 			httpjson.Error(w, http.StatusUnauthorized, "token manquant")
 			return
 		}
 
-		claims := &Claims{}
-		_, err := jwt.ParseWithClaims(
-			tokenString,
-			claims,
-			func(token *jwt.Token) (any, error) {
-				return handler.jwtSecret, nil
-			},
-			jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
-		)
+		authenticatedUser, err := handler.auth.parseAccessToken(token)
 		if err != nil {
-			httpjson.Error(w, http.StatusUnauthorized, "token invalide ou expiré")
+			httpjson.Error(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 
-		userID, err := strconv.ParseInt(claims.Subject, 10, 64)
-		if err != nil {
-			httpjson.Error(w, http.StatusUnauthorized, "token invalide ou expiré")
-			return
-		}
-
-		user := AuthenticatedUser{ID: userID, Role: claims.Role}
-		contextWithUser := context.WithValue(r.Context(), userContextKey, user)
-		next(w, r.WithContext(contextWithUser))
+		ctx := context.WithValue(r.Context(), contextKey{}, authenticatedUser)
+		next(w, r.WithContext(ctx))
 	}
-}
-
-func UserFromContext(requestContext context.Context) (AuthenticatedUser, bool) {
-	user, found := requestContext.Value(userContextKey).(AuthenticatedUser)
-	return user, found
 }
 
 func (handler *Handler) RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
 	return handler.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
-		user, _ := UserFromContext(r.Context())
-		if user.Role != "admin" {
-			httpjson.Error(w, http.StatusForbidden, "User non admin")
+		authenticatedUser, _ := UserFromContext(r.Context())
+		if authenticatedUser.Role != user.RoleAdmin {
+			httpjson.Error(w, http.StatusForbidden, "accès réservé aux admins")
 			return
 		}
 		next(w, r)
 	})
+}
+
+func UserFromContext(ctx context.Context) (AuthenticatedUser, bool) {
+	authenticatedUser, ok := ctx.Value(contextKey{}).(AuthenticatedUser)
+	return authenticatedUser, ok
 }
