@@ -1,12 +1,7 @@
 package auth
 
 import (
-	"database/sql"
-	"errors"
-	"log"
 	"net/http"
-
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/Froggys974/e-commerce_golang/internal/httpjson"
 )
@@ -16,54 +11,50 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
-const invalidCredentialsMessage = "email ou mot de passe incorrect"
+type refreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
 
 func (handler *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var request loginRequest
 	if err := httpjson.Read(w, r, &request); err != nil {
-		httpjson.Error(w, http.StatusBadRequest, "JSON non valide")
+		httpjson.Error(w, http.StatusBadRequest, "JSON invalide")
 		return
 	}
 
-	email := normalizeEmail(request.Email)
-
-	var (
-		userID       int64
-		passwordHash string
-		role         string
-		confirmed    bool
-	)
-	err := handler.database.QueryRow(
-		`SELECT id, password_hash, role, confirmed FROM users WHERE email = $1`,
-		email,
-	).Scan(&userID, &passwordHash, &role, &confirmed)
-	if errors.Is(err, sql.ErrNoRows) {
-		httpjson.Error(w, http.StatusUnauthorized, invalidCredentialsMessage)
-		return
-	}
+	tokens, err := handler.auth.Login(r.Context(), request.Email, request.Password)
 	if err != nil {
-		log.Printf("login: select: %v", err)
-		httpjson.Error(w, http.StatusInternalServerError, "Erreur serveur")
-		return
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(request.Password))
-
-	if err != nil {
-		httpjson.Error(w, http.StatusUnauthorized, invalidCredentialsMessage)
-		return
-	}
-
-	if !confirmed {
-		httpjson.Error(w, http.StatusForbidden, "compte non confirmé")
-		return
-	}
-
-	tokens, err := handler.issueTokens(userID, role)
-	if err != nil {
-		log.Printf("login: %v", err)
-		httpjson.Error(w, http.StatusInternalServerError, "Erreur serveur")
+		writeError(w, err)
 		return
 	}
 	httpjson.Write(w, http.StatusOK, tokens)
+}
+
+func (handler *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
+	var request refreshRequest
+	if err := httpjson.Read(w, r, &request); err != nil {
+		httpjson.Error(w, http.StatusBadRequest, "JSON invalide")
+		return
+	}
+
+	tokens, err := handler.auth.Refresh(r.Context(), request.RefreshToken)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	httpjson.Write(w, http.StatusOK, tokens)
+}
+
+func (handler *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	var request refreshRequest
+	if err := httpjson.Read(w, r, &request); err != nil {
+		httpjson.Error(w, http.StatusBadRequest, "JSON invalide")
+		return
+	}
+
+	if err := handler.auth.Logout(r.Context(), request.RefreshToken); err != nil {
+		writeError(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

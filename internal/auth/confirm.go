@@ -1,16 +1,20 @@
 package auth
 
 import (
-	"log"
+	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/Froggys974/e-commerce_golang/internal/httpjson"
+	"github.com/Froggys974/e-commerce_golang/internal/user"
 )
 
 type confirmRequest struct {
 	Email string `json:"email"`
 	Code  string `json:"code"`
+}
+
+type emailRequest struct {
+	Email string `json:"email"`
 }
 
 func (handler *Handler) Confirm(w http.ResponseWriter, r *http.Request) {
@@ -20,33 +24,28 @@ func (handler *Handler) Confirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := normalizeEmail(request.Email)
-	code := strings.TrimSpace(request.Code)
+	if err := handler.users.ConfirmByCode(r.Context(), request.Email, request.Code); err != nil {
+		writeError(w, err)
+		return
+	}
+	httpjson.Write(w, http.StatusOK, map[string]string{"message": "compte confirmé"})
+}
 
-	result, err := handler.database.Exec(
-		`UPDATE users
-        SET confirmed = true, confirm_code = NULL
-        WHERE email = $1 AND confirm_code = $2 AND confirmed = false`,
-		email, code,
-	)
-	if err != nil {
-		log.Printf("confirm: update: %v", err)
-		httpjson.Error(w, http.StatusInternalServerError, "Erreur serveur")
+func (handler *Handler) ResendConfirmCode(w http.ResponseWriter, r *http.Request) {
+	var request emailRequest
+	if err := httpjson.Read(w, r, &request); err != nil {
+		httpjson.Error(w, http.StatusBadRequest, "JSON invalide")
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		log.Printf("confirm: rows affected: %v", err)
-		httpjson.Error(w, http.StatusInternalServerError, "Erreur serveur")
+	code, err := handler.users.ResendConfirmCode(r.Context(), request.Email)
+	switch {
+	case errors.Is(err, user.ErrEmailNotFound):
+	case err != nil:
+		writeError(w, err)
 		return
+	default:
+		sendCode(request.Email, code)
 	}
-	if rowsAffected == 0 {
-		httpjson.Error(w, http.StatusBadRequest, "code invalide ou compte déjà confirmé")
-		return
-	}
-
-	httpjson.Write(w, http.StatusOK, map[string]string{
-		"message": "compte confirmé",
-	})
+	httpjson.Write(w, http.StatusOK, map[string]string{"message": codeSentMessage})
 }

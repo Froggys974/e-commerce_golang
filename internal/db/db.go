@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 
@@ -11,7 +12,7 @@ import (
 func Open() (*sql.DB, error) {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://postgresuser:postgrespwd@postgres:5432/postgresdb?sslmode=disable"
+		return nil, errors.New("variable d'environnement DATABASE_URL manquante")
 	}
 
 	database, err := sql.Open("pgx", dsn)
@@ -19,6 +20,7 @@ func Open() (*sql.DB, error) {
 		return nil, fmt.Errorf("sql.Open: %w", err)
 	}
 	if err := database.Ping(); err != nil {
+		database.Close()
 		return nil, fmt.Errorf("ping db: %w", err)
 	}
 	return database, nil

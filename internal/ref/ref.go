@@ -2,6 +2,8 @@ package ref
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 )
 
 const (
@@ -10,20 +12,28 @@ const (
 	Order   = "CMD"
 )
 
-// 32 chars, skip I : 1 | O : 0 to avoid missinterpretation
 const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
-// Test with 5 to see test fail | docker compose exec go go test -v ./internal/ref/
 const length = 6
 
 func New(prefix string) string {
-	randomBytes := make([]byte, length)
+	return prefix + "-" + Code(length)
+}
+
+func Code(n int) string {
+	randomBytes := make([]byte, n)
+	// rand read jamais en erreur depuis go 1 24
 	rand.Read(randomBytes)
 
-	code := make([]byte, length)
+	code := make([]byte, n)
 	for i, randomByte := range randomBytes {
 		alphabetI := randomByte % byte(len(alphabet))
 		code[i] = alphabet[alphabetI]
 	}
-	return prefix + "-" + string(code)
+	return string(code)
+}
+
+func Hash(code string) string {
+	sum := sha256.Sum256([]byte(code))
+	return hex.EncodeToString(sum[:])
 }
