@@ -1,9 +1,9 @@
 services:
-  go: 
+  go:
     build: .
     tty: true
     stdin_open: true
-    user: go 
+    user: go
     working_dir: /app
     ports:
       - "8000:8000"
@@ -11,28 +11,38 @@ services:
       - .:/app
     environment:
       - GOENV=development
+      - DATABASE_URL=postgres://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@db:5432/${POSTGRES_DB:?}?sslmode=disable
+      - JWT_SECRET=${JWT_SECRET:?}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+    depends_on:
+      db:
+        condition: service_healthy
 
-  postgres:
-    image: postgres:14.24-alpine3.23
+  db:
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=postgresuser
-      - POSTGRES_PASSWORD=postgrespwd
-      - POSTGRES_DB=postgresdb
-    ports:
-      - "5432:5432"
+      - POSTGRES_USER=${POSTGRES_USER:?}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?}
+      - POSTGRES_DB=${POSTGRES_DB:?}
     volumes:
-      - postgres-go-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   adminer:
-    image: adminer:latest
+    image: adminer
+    restart: unless-stopped
     ports:
       - "8080:8080"
-    restart: unless-stopped
     environment:
-      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DEFAULT_SERVER=db
     depends_on:
-      - postgres
+      - db
 
 volumes:
-  postgres-go-data:
+  db-data:

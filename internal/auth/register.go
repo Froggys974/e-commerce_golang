@@ -1,25 +1,21 @@
 package auth
 
 import (
-	"crypto/rand"
 	"errors"
-	"fmt"
 	"log"
-	"math/big"
 	"net/http"
-	"net/mail"
-	"strings"
-
-	"github.com/jackc/pgx/v5/pgconn"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/Froggys974/e-commerce_golang/internal/httpjson"
+	"github.com/Froggys974/e-commerce_golang/internal/user"
 )
 
 type registerRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+
+// meme reponse si email deja pris anti enumeration
+const codeSentMessage = "Si l'email est valide, un code a été envoyé"
 
 func (handler *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	var request registerRequest
@@ -28,60 +24,22 @@ func (handler *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := strings.ToLower(strings.TrimSpace(request.Email))
-	parsedAddress, err := mail.ParseAddress(email)
-	if err != nil || parsedAddress.Address != email {
-		httpjson.Error(w, http.StatusBadRequest, "Si l'email est valide, un mail a été envoyé")
+	code, err := handler.users.Register(r.Context(), request.Email, request.Password)
+
+	var emailTakenErr user.EmailTakenError
+	switch {
+	case errors.As(err, &emailTakenErr):
+		log.Printf("register: %v", err)
+	case err != nil:
+		writeError(w, err)
 		return
+	default:
+		sendCode(request.Email, code)
 	}
-
-	if len(request.Password) < 8 || len(request.Password) > 72 {
-		httpjson.Error(w, http.StatusBadRequest, "Le mot de passe doit faire entre 8 et 72 octs")
-		return
-	}
-
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
-	if err != nil {
-		log.Printf("register: bcrypt: %v", err)
-		httpjson.Error(w, http.StatusInternalServerError, "Erreur serveur")
-		return
-	}
-
-	confirmCode := generateConfirmCode()
-
-	_, err = handler.database.Exec(
-		`INSERT INTO users (email, password_hash, confirm_code) VALUES ($1, $2, $3)`,
-		email, string(passwordHash), confirmCode,
-	)
-
-	if isUniqueViolation(err) {
-		log.Printf("register: email déjà utilisé: %s", email)
-		httpjson.Write(w, http.StatusCreated, map[string]string{
-			"message": "Si l'email est valide, un code de confirmation a été envoyé",
-		})
-		return
-	}
-
-	if err != nil {
-		log.Printf("register: insert: %v", err)
-		httpjson.Error(w, http.StatusInternalServerError, "Erreur serveur")
-		return
-	}
-
-	// TODO: envoyer par email via Mailpit / Mailtrap ?
-	log.Printf("[MAIL] code de confirmation pour %s : %s", email, confirmCode)
-
-	httpjson.Write(w, http.StatusCreated, map[string]string{
-		"message": "Si l'email est valide, un code de confirmation a été envoyé",
-	})
+	httpjson.Write(w, http.StatusCreated, map[string]string{"message": codeSentMessage})
 }
 
-func generateConfirmCode() string {
-	number, _ := rand.Int(rand.Reader, big.NewInt(1_000_000))
-	return fmt.Sprintf("%06d", number.Int64())
-}
-
-func isUniqueViolation(err error) bool {
-	var postgresError *pgconn.PgError
-	return errors.As(err, &postgresError) && postgresError.Code == "23505"
+// TODO: envoyer par email via Mailpit / Mailtrap ?
+func sendCode(email, code string) {
+	log.Printf("[MAIL] code pour %s : %s", email, code)
 }
