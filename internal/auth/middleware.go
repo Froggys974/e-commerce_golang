@@ -59,3 +59,14 @@ func UserFromContext(requestContext context.Context) (AuthenticatedUser, bool) {
 	user, found := requestContext.Value(userContextKey).(AuthenticatedUser)
 	return user, found
 }
+
+func (handler *Handler) RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return handler.RequireAuth(func(w http.ResponseWriter, r *http.Request) {
+		user, _ := UserFromContext(r.Context())
+		if user.Role != "admin" {
+			httpjson.Error(w, http.StatusForbidden, "User non admin")
+			return
+		}
+		next(w, r)
+	})
+}

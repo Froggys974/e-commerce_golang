@@ -2,16 +2,15 @@ package auth
 
 import (
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"log"
 	"math/big"
 	"net/http"
 	"net/mail"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/Froggys974/e-commerce_golang/internal/db"
 	"github.com/Froggys974/e-commerce_golang/internal/httpjson"
 )
 
@@ -53,7 +52,7 @@ func (handler *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		email, string(passwordHash), confirmCode,
 	)
 
-	if isUniqueViolation(err) {
+	if db.IsUniqueViolation(err) {
 		log.Printf("register: email déjà utilisé: %s", email)
 		httpjson.Write(w, http.StatusCreated, map[string]string{
 			"message": "Si l'email est valide, un code de confirmation a été envoyé",
@@ -78,9 +77,4 @@ func (handler *Handler) Register(w http.ResponseWriter, r *http.Request) {
 func generateConfirmCode() string {
 	number, _ := rand.Int(rand.Reader, big.NewInt(1_000_000))
 	return fmt.Sprintf("%06d", number.Int64())
-}
-
-func isUniqueViolation(err error) bool {
-	var postgresError *pgconn.PgError
-	return errors.As(err, &postgresError) && postgresError.Code == "23505"
 }
