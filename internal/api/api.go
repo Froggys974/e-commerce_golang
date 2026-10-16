@@ -12,6 +12,7 @@ import (
 	"github.com/Froggys974/e-commerce_golang/internal/auth"
 	"github.com/Froggys974/e-commerce_golang/internal/db"
 	"github.com/Froggys974/e-commerce_golang/internal/httpjson"
+	"github.com/Froggys974/e-commerce_golang/internal/product"
 	"github.com/Froggys974/e-commerce_golang/internal/user"
 )
 
@@ -47,6 +48,7 @@ func Run() error {
 
 	authHandler := auth.NewHandler(userService, authService)
 	userHandler := user.NewHandler(userService)
+	productHandler := product.NewHandler(product.NewService(product.NewRepository(database)))
 
 	mux := http.NewServeMux()
 
@@ -65,6 +67,10 @@ func Run() error {
 	mux.HandleFunc("PUT /admin/users/{id}", authHandler.RequireAdmin(userHandler.Update))
 	mux.HandleFunc("DELETE /admin/users/{id}", authHandler.RequireAdmin(userHandler.Delete))
 	mux.HandleFunc("POST /admin/users/{id}/confirm", authHandler.RequireAdmin(userHandler.Confirm))
+
+	mux.HandleFunc("POST /admin/products", authHandler.RequireAdmin(productHandler.Create))
+	mux.HandleFunc("GET /products", productHandler.List)
+	mux.HandleFunc("GET /products/{ref}", productHandler.Get)
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		httpjson.Write(w, http.StatusOK, map[string]string{"status": "ok"})

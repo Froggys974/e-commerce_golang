@@ -13,10 +13,10 @@ func (handler *Handler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := handler.users.GetUser(r.Context(), authenticatedUser.ID)
+	account, err := handler.users.GetUser(r.Context(), authenticatedUser.ID)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	httpjson.Write(w, http.StatusOK, u)
+	httpjson.Write(w, http.StatusOK, account)
 }

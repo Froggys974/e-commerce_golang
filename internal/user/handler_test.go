@@ -36,15 +36,15 @@ func TestHandler(t *testing.T) {
 		{"suppression", "DELETE", "/admin/users/1", "", http.StatusNoContent},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(tt.method, tt.path, strings.NewReader(tt.body))
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			request := httptest.NewRequest(testCase.method, testCase.path, strings.NewReader(testCase.body))
 			recorder := httptest.NewRecorder()
 
 			mux.ServeHTTP(recorder, request)
 
-			if recorder.Code != tt.wantStatus {
-				t.Errorf("status = %d; attendu %d (%s)", recorder.Code, tt.wantStatus, recorder.Body.String())
+			if recorder.Code != testCase.wantStatus {
+				t.Errorf("status = %d; attendu %d (%s)", recorder.Code, testCase.wantStatus, recorder.Body.String())
 			}
 		})
 	}

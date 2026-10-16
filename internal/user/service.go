@@ -14,8 +14,8 @@ type repository interface {
 	List(ctx context.Context) ([]User, error)
 	FindByID(ctx context.Context, id int64) (User, error)
 	FindByEmail(ctx context.Context, email string) (User, error)
-	Create(ctx context.Context, u *User) error
-	Update(ctx context.Context, u User) error
+	Create(ctx context.Context, user *User) error
+	Update(ctx context.Context, user User) error
 	Delete(ctx context.Context, id int64) error
 	Confirm(ctx context.Context, id int64) error
 	SetConfirmCode(ctx context.Context, email, code string, expiresAt time.Time) error
@@ -42,8 +42,8 @@ type Service struct {
 	check checker
 }
 
-func NewService(r repository, h hasher, c checker) *Service {
-	return &Service{repo: r, hash: h, check: c}
+func NewService(repo repository, hashPassword hasher, checkPassword checker) *Service {
+	return &Service{repo: repo, hash: hashPassword, check: checkPassword}
 }
 
 func (s *Service) ListUsers(ctx context.Context) ([]User, error) {
@@ -55,11 +55,11 @@ func (s *Service) GetUser(ctx context.Context, id int64) (User, error) {
 }
 
 func (s *Service) Register(ctx context.Context, email, password string) (string, error) {
-	u, err := s.create(ctx, email, password, RoleUser)
+	user, err := s.create(ctx, email, password, RoleUser)
 	if err != nil {
 		return "", err
 	}
-	return s.ResendConfirmCode(ctx, u.Email)
+	return s.ResendConfirmCode(ctx, user.Email)
 }
 
 // creation admin sans code confirmation via Confirm
@@ -68,7 +68,7 @@ func (s *Service) CreateUser(ctx context.Context, email, password string, role R
 }
 
 func (s *Service) EnsureAdmin(ctx context.Context, email, password string) error {
-	u, err := s.create(ctx, email, password, RoleAdmin)
+	user, err := s.create(ctx, email, password, RoleAdmin)
 	var emailTakenErr EmailTakenError
 	if errors.As(err, &emailTakenErr) {
 		return nil
@@ -76,7 +76,7 @@ func (s *Service) EnsureAdmin(ctx context.Context, email, password string) error
 	if err != nil {
 		return err
 	}
-	return s.repo.Confirm(ctx, u.ID)
+	return s.repo.Confirm(ctx, user.ID)
 }
 
 func (s *Service) create(ctx context.Context, email, password string, role Role) (User, error) {
@@ -96,15 +96,15 @@ func (s *Service) create(ctx context.Context, email, password string, role Role)
 		return User{}, err
 	}
 
-	u := User{
+	user := User{
 		Email:        email,
 		PasswordHash: hash,
 		Role:         role,
 	}
-	if err := s.repo.Create(ctx, &u); err != nil {
+	if err := s.repo.Create(ctx, &user); err != nil {
 		return User{}, err
 	}
-	return u, nil
+	return user, nil
 }
 
 func (s *Service) UpdateUser(ctx context.Context, id int64, email string, role Role) (User, error) {
@@ -116,17 +116,17 @@ func (s *Service) UpdateUser(ctx context.Context, id int64, email string, role R
 		return User{}, err
 	}
 
-	u, err := s.repo.FindByID(ctx, id)
+	user, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return User{}, err
 	}
 
-	u.Email = email
-	u.Role = role
-	if err := s.repo.Update(ctx, u); err != nil {
+	user.Email = email
+	user.Role = role
+	if err := s.repo.Update(ctx, user); err != nil {
 		return User{}, err
 	}
-	return u, nil
+	return user, nil
 }
 
 func (s *Service) DeleteUser(ctx context.Context, id int64) error {
@@ -143,7 +143,7 @@ func (s *Service) Authenticate(ctx context.Context, email, password string) (Use
 		return User{}, ErrInvalidCredentials
 	}
 
-	u, err := s.repo.FindByEmail(ctx, email)
+	user, err := s.repo.FindByEmail(ctx, email)
 	if errors.Is(err, ErrEmailNotFound) {
 		return User{}, ErrInvalidCredentials
 	}
@@ -151,13 +151,13 @@ func (s *Service) Authenticate(ctx context.Context, email, password string) (Use
 		return User{}, err
 	}
 
-	if err := s.check(u.PasswordHash, password); err != nil {
+	if err := s.check(user.PasswordHash, password); err != nil {
 		return User{}, ErrInvalidCredentials
 	}
-	if !u.Confirmed {
+	if !user.Confirmed {
 		return User{}, ErrNotConfirmed
 	}
-	return u, nil
+	return user, nil
 }
 
 func (s *Service) ResendConfirmCode(ctx context.Context, email string) (string, error) {

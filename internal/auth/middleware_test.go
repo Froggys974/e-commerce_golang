@@ -36,16 +36,16 @@ func TestRequireAdmin(t *testing.T) {
 		{"admin", tokenFor(user.RoleAdmin), http.StatusOK},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			request := httptest.NewRequest("GET", "/admin/users", nil)
-			request.Header.Set("Authorization", tt.authorization)
+			request.Header.Set("Authorization", testCase.authorization)
 			recorder := httptest.NewRecorder()
 
 			protected(recorder, request)
 
-			if recorder.Code != tt.wantStatus {
-				t.Errorf("status = %d; attendu %d", recorder.Code, tt.wantStatus)
+			if recorder.Code != testCase.wantStatus {
+				t.Errorf("status = %d; attendu %d", recorder.Code, testCase.wantStatus)
 			}
 		})
 	}
