@@ -28,54 +28,54 @@ func newFakeRepository() *fakeRepository {
 	}
 }
 
-func (f *fakeRepository) seed(u User) User {
-	u.ID = f.nextID
+func (f *fakeRepository) seed(user User) User {
+	user.ID = f.nextID
 	f.nextID++
-	f.users[u.ID] = u
-	return u
+	f.users[user.ID] = user
+	return user
 }
 
 func (f *fakeRepository) List(ctx context.Context) ([]User, error) {
 	users := make([]User, 0, len(f.users))
-	for _, u := range f.users {
-		users = append(users, u)
+	for _, user := range f.users {
+		users = append(users, user)
 	}
 	return users, nil
 }
 
 func (f *fakeRepository) FindByID(ctx context.Context, id int64) (User, error) {
-	u, ok := f.users[id]
+	user, ok := f.users[id]
 	if !ok {
 		return User{}, NotFoundError{ID: id}
 	}
-	return u, nil
+	return user, nil
 }
 
 func (f *fakeRepository) FindByEmail(ctx context.Context, email string) (User, error) {
-	for _, u := range f.users {
-		if u.Email == email {
-			return u, nil
+	for _, user := range f.users {
+		if user.Email == email {
+			return user, nil
 		}
 	}
 	return User{}, ErrEmailNotFound
 }
 
-func (f *fakeRepository) Create(ctx context.Context, u *User) error {
+func (f *fakeRepository) Create(ctx context.Context, user *User) error {
 	if f.createErr != nil {
 		return f.createErr
 	}
-	u.ID = f.nextID
-	u.CreatedAt = time.Now()
+	user.ID = f.nextID
+	user.CreatedAt = time.Now()
 	f.nextID++
-	f.users[u.ID] = *u
+	f.users[user.ID] = *user
 	return nil
 }
 
-func (f *fakeRepository) Update(ctx context.Context, u User) error {
-	if _, ok := f.users[u.ID]; !ok {
-		return NotFoundError{ID: u.ID}
+func (f *fakeRepository) Update(ctx context.Context, user User) error {
+	if _, ok := f.users[user.ID]; !ok {
+		return NotFoundError{ID: user.ID}
 	}
-	f.users[u.ID] = u
+	f.users[user.ID] = user
 	f.updateCalls++
 	return nil
 }
@@ -89,50 +89,50 @@ func (f *fakeRepository) Delete(ctx context.Context, id int64) error {
 }
 
 func (f *fakeRepository) Confirm(ctx context.Context, id int64) error {
-	u, ok := f.users[id]
+	user, ok := f.users[id]
 	if !ok {
 		return NotFoundError{ID: id}
 	}
-	u.Confirmed = true
-	f.users[id] = u
+	user.Confirmed = true
+	f.users[id] = user
 	delete(f.codes, id)
 	return nil
 }
 
 func (f *fakeRepository) SetConfirmCode(ctx context.Context, email, code string, expiresAt time.Time) error {
-	u, err := f.FindByEmail(ctx, email)
-	if err != nil || u.Confirmed {
+	user, err := f.FindByEmail(ctx, email)
+	if err != nil || user.Confirmed {
 		return ErrEmailNotFound
 	}
-	f.codes[u.ID] = code
+	f.codes[user.ID] = code
 	return nil
 }
 
 func (f *fakeRepository) ConfirmByCode(ctx context.Context, email, code string, maxAttempts int) error {
-	u, err := f.FindByEmail(ctx, email)
-	if err != nil || u.Confirmed || f.codes[u.ID] != code {
+	user, err := f.FindByEmail(ctx, email)
+	if err != nil || user.Confirmed || f.codes[user.ID] != code {
 		return ErrInvalidCode
 	}
-	return f.Confirm(ctx, u.ID)
+	return f.Confirm(ctx, user.ID)
 }
 
 func (f *fakeRepository) SetResetCode(ctx context.Context, email, code string, expiresAt time.Time) error {
-	u, err := f.FindByEmail(ctx, email)
+	user, err := f.FindByEmail(ctx, email)
 	if err != nil {
 		return err
 	}
-	f.resetCodes[u.ID] = code
+	f.resetCodes[user.ID] = code
 	return nil
 }
 
 func (f *fakeRepository) ResetPassword(ctx context.Context, email, code, passwordHash string, maxAttempts int) error {
-	u, err := f.FindByEmail(ctx, email)
-	if err != nil || f.resetCodes[u.ID] != code {
+	user, err := f.FindByEmail(ctx, email)
+	if err != nil || f.resetCodes[user.ID] != code {
 		return ErrInvalidCode
 	}
-	u.PasswordHash = passwordHash
-	f.users[u.ID] = u
-	delete(f.resetCodes, u.ID)
+	user.PasswordHash = passwordHash
+	f.users[user.ID] = user
+	delete(f.resetCodes, user.ID)
 	return nil
 }
 
@@ -155,27 +155,27 @@ func TestCreateUser(t *testing.T) {
 	repo := newFakeRepository()
 	svc := newTestService(repo)
 
-	u, err := svc.CreateUser(context.Background(), "  Florent@Test.COM ", "motdepasse", RoleAdmin)
+	user, err := svc.CreateUser(context.Background(), "  Florent@Test.COM ", "motdepasse", RoleAdmin)
 	if err != nil {
 		t.Fatalf("erreur : %v", err)
 	}
 
-	if u.ID == 0 {
+	if user.ID == 0 {
 		t.Error("l'id aurait dû être rempli par le repo")
 	}
-	if u.Email != "florent@test.com" {
-		t.Errorf("Email = %q; attendu %q", u.Email, "florent@test.com")
+	if user.Email != "florent@test.com" {
+		t.Errorf("Email = %q; attendu %q", user.Email, "florent@test.com")
 	}
-	if u.PasswordHash != "hashed:motdepasse" {
-		t.Errorf("PasswordHash = %q; attendu le mot de passe hashé", u.PasswordHash)
+	if user.PasswordHash != "hashed:motdepasse" {
+		t.Errorf("PasswordHash = %q; attendu le mot de passe hashé", user.PasswordHash)
 	}
-	if u.Confirmed {
+	if user.Confirmed {
 		t.Error("un nouvel utilisateur ne devrait pas être confirmé")
 	}
-	if _, ok := repo.users[u.ID]; !ok {
+	if _, ok := repo.users[user.ID]; !ok {
 		t.Error("l'utilisateur n'a pas été enregistré dans le repo")
 	}
-	if _, ok := repo.codes[u.ID]; ok {
+	if _, ok := repo.codes[user.ID]; ok {
 		t.Error("un utilisateur créé par l'admin ne devrait pas avoir de code")
 	}
 }
@@ -197,19 +197,19 @@ func TestCreateUserValidation(t *testing.T) {
 		{"mot de passe trop long", "florent@test.com", strings.Repeat("a", 73), RoleUser, "password"},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			repo := newFakeRepository()
 			svc := newTestService(repo)
 
-			_, err := svc.CreateUser(context.Background(), tt.email, tt.password, tt.role)
+			_, err := svc.CreateUser(context.Background(), testCase.email, testCase.password, testCase.role)
 
 			var valErr ValidationError
 			if !errors.As(err, &valErr) {
 				t.Fatalf("erreur = %v; attendu une ValidationError", err)
 			}
-			if valErr.Field != tt.wantField {
-				t.Errorf("Field = %q; attendu %q", valErr.Field, tt.wantField)
+			if valErr.Field != testCase.wantField {
+				t.Errorf("Field = %q; attendu %q", valErr.Field, testCase.wantField)
 			}
 			if len(repo.users) != 0 {
 				t.Error("aucun utilisateur ne devrait être enregistré")
@@ -263,9 +263,9 @@ func TestRegister(t *testing.T) {
 	if len(repo.users) != 1 {
 		t.Fatalf("len(users) = %d; attendu 1", len(repo.users))
 	}
-	for id, u := range repo.users {
-		if u.Role != RoleUser {
-			t.Errorf("Role = %q; attendu %q", u.Role, RoleUser)
+	for id, user := range repo.users {
+		if user.Role != RoleUser {
+			t.Errorf("Role = %q; attendu %q", user.Role, RoleUser)
 		}
 		if repo.codes[id] != ref.Hash(code) {
 			t.Errorf("code stocké = %q; attendu %q", repo.codes[id], ref.Hash(code))
@@ -294,12 +294,12 @@ func TestGetUser(t *testing.T) {
 	existing := repo.seed(User{Email: "florent@test.com", Role: RoleUser})
 	svc := newTestService(repo)
 
-	u, err := svc.GetUser(context.Background(), existing.ID)
+	user, err := svc.GetUser(context.Background(), existing.ID)
 	if err != nil {
 		t.Fatalf("erreur inattendue : %v", err)
 	}
-	if u.Email != "florent@test.com" {
-		t.Errorf("Email = %q; attendu %q", u.Email, "florent@test.com")
+	if user.Email != "florent@test.com" {
+		t.Errorf("Email = %q; attendu %q", user.Email, "florent@test.com")
 	}
 
 	_, err = svc.GetUser(context.Background(), 999)
@@ -329,16 +329,16 @@ func TestUpdateUser(t *testing.T) {
 	existing := repo.seed(User{Email: "florent@test.com", PasswordHash: "hashed:secret", Role: RoleUser})
 	svc := newTestService(repo)
 
-	u, err := svc.UpdateUser(context.Background(), existing.ID, "Florent.New@Test.com", RoleAdmin)
+	user, err := svc.UpdateUser(context.Background(), existing.ID, "Florent.New@Test.com", RoleAdmin)
 	if err != nil {
 		t.Fatalf("erreur inattendue : %v", err)
 	}
 
-	if u.Email != "florent.new@test.com" {
-		t.Errorf("Email = %q; attendu %q", u.Email, "florent.new@test.com")
+	if user.Email != "florent.new@test.com" {
+		t.Errorf("Email = %q; attendu %q", user.Email, "florent.new@test.com")
 	}
-	if u.Role != RoleAdmin {
-		t.Errorf("Role = %q; attendu %q", u.Role, RoleAdmin)
+	if user.Role != RoleAdmin {
+		t.Errorf("Role = %q; attendu %q", user.Role, RoleAdmin)
 	}
 	if repo.users[existing.ID].PasswordHash != "hashed:secret" {
 		t.Error("la mise à jour ne devrait pas toucher au mot de passe")
@@ -370,20 +370,20 @@ func TestUpdateUserValidation(t *testing.T) {
 		{"rôle inconnu", "florent@test.com", Role("superadmin"), "role"},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			repo := newFakeRepository()
 			existing := repo.seed(User{Email: "florent@test.com", Role: RoleUser})
 			svc := newTestService(repo)
 
-			_, err := svc.UpdateUser(context.Background(), existing.ID, tt.email, tt.role)
+			_, err := svc.UpdateUser(context.Background(), existing.ID, testCase.email, testCase.role)
 
 			var valErr ValidationError
 			if !errors.As(err, &valErr) {
 				t.Fatalf("erreur = %v; attendu une ValidationError", err)
 			}
-			if valErr.Field != tt.wantField {
-				t.Errorf("Field = %q; attendu %q", valErr.Field, tt.wantField)
+			if valErr.Field != testCase.wantField {
+				t.Errorf("Field = %q; attendu %q", valErr.Field, testCase.wantField)
 			}
 			if repo.updateCalls != 0 {
 				t.Error("le repo ne devrait pas être appelé si la validation échoue")
@@ -472,14 +472,14 @@ func TestConfirmByCodeInvalid(t *testing.T) {
 		{"autre email", "bob@test.com", "ABCD2345"},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
 			repo := newFakeRepository()
 			existing := repo.seed(User{Email: "florent@test.com", Role: RoleUser})
 			repo.codes[existing.ID] = ref.Hash("ABCD2345")
 			svc := newTestService(repo)
 
-			err := svc.ConfirmByCode(context.Background(), tt.email, tt.code)
+			err := svc.ConfirmByCode(context.Background(), testCase.email, testCase.code)
 
 			if !errors.Is(err, ErrInvalidCode) {
 				t.Errorf("erreur = %v; attendu ErrInvalidCode", err)
@@ -520,11 +520,11 @@ func TestAuthenticate(t *testing.T) {
 		{"compte non confirmé", "bob@test.com", "motdepasse", ErrNotConfirmed},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := svc.Authenticate(context.Background(), tt.email, tt.password)
-			if !errors.Is(err, tt.wantErr) {
-				t.Errorf("erreur = %v; attendu %v", err, tt.wantErr)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := svc.Authenticate(context.Background(), testCase.email, testCase.password)
+			if !errors.Is(err, testCase.wantErr) {
+				t.Errorf("erreur = %v; attendu %v", err, testCase.wantErr)
 			}
 		})
 	}

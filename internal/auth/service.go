@@ -37,21 +37,21 @@ type Service struct {
 	secret []byte
 }
 
-func NewService(u users, t tokenRepository, secret []byte) *Service {
-	return &Service{users: u, tokens: t, secret: secret}
+func NewService(userService users, tokenRepo tokenRepository, secret []byte) *Service {
+	return &Service{users: userService, tokens: tokenRepo, secret: secret}
 }
 
 func (s *Service) Login(ctx context.Context, email, password string) (Tokens, error) {
-	u, err := s.users.Authenticate(ctx, email, password)
+	account, err := s.users.Authenticate(ctx, email, password)
 	if err != nil {
 		return Tokens{}, err
 	}
 
 	refreshToken := rand.Text()
-	if err := s.tokens.CreateToken(ctx, u.ID, ref.Hash(refreshToken), time.Now().Add(refreshTokenTTL)); err != nil {
+	if err := s.tokens.CreateToken(ctx, account.ID, ref.Hash(refreshToken), time.Now().Add(refreshTokenTTL)); err != nil {
 		return Tokens{}, err
 	}
-	return s.newTokens(u, refreshToken)
+	return s.newTokens(account, refreshToken)
 }
 
 func (s *Service) Refresh(ctx context.Context, refreshToken string) (Tokens, error) {
@@ -61,19 +61,19 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (Tokens, err
 		return Tokens{}, err
 	}
 
-	u, err := s.users.GetUser(ctx, userID)
+	account, err := s.users.GetUser(ctx, userID)
 	if err != nil {
 		return Tokens{}, err
 	}
-	return s.newTokens(u, newRefreshToken)
+	return s.newTokens(account, newRefreshToken)
 }
 
 func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 	return s.tokens.RevokeToken(ctx, ref.Hash(refreshToken))
 }
 
-func (s *Service) newTokens(u user.User, refreshToken string) (Tokens, error) {
-	accessToken, err := signAccessToken(s.secret, u.ID, u.Role, time.Now())
+func (s *Service) newTokens(account user.User, refreshToken string) (Tokens, error) {
+	accessToken, err := signAccessToken(s.secret, account.ID, account.Role, time.Now())
 	if err != nil {
 		return Tokens{}, err
 	}

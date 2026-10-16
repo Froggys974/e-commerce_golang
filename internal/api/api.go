@@ -69,6 +69,8 @@ func Run() error {
 	mux.HandleFunc("POST /admin/users/{id}/confirm", authHandler.RequireAdmin(userHandler.Confirm))
 
 	mux.HandleFunc("POST /admin/products", authHandler.RequireAdmin(productHandler.Create))
+	mux.HandleFunc("GET /products", productHandler.List)
+	mux.HandleFunc("GET /products/{ref}", productHandler.Get)
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		httpjson.Write(w, http.StatusOK, map[string]string{"status": "ok"})

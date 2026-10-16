@@ -44,12 +44,12 @@ func (handler *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := handler.service.CreateUser(r.Context(), request.Email, request.Password, request.Role)
+	user, err := handler.service.CreateUser(r.Context(), request.Email, request.Password, request.Role)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	httpjson.Write(w, http.StatusCreated, u)
+	httpjson.Write(w, http.StatusCreated, user)
 }
 
 func (handler *Handler) Update(w http.ResponseWriter, r *http.Request) {
@@ -65,12 +65,12 @@ func (handler *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := handler.service.UpdateUser(r.Context(), id, request.Email, request.Role)
+	user, err := handler.service.UpdateUser(r.Context(), id, request.Email, request.Role)
 	if err != nil {
 		writeError(w, err)
 		return
 	}
-	httpjson.Write(w, http.StatusOK, u)
+	httpjson.Write(w, http.StatusOK, user)
 }
 
 func (handler *Handler) Delete(w http.ResponseWriter, r *http.Request) {

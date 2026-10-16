@@ -23,7 +23,20 @@ func PriceTTC(priceHTCents int64, vatPercent int) int64 {
 	return (priceHTCents*int64(100+vatPercent) + 50) / 100
 }
 
-var ErrRefTaken = errors.New("référence produit déjà utilisée")
+var (
+	ErrRefTaken = errors.New("référence produit déjà utilisée")
+	ErrNotFound = errors.New("produit introuvable")
+)
+
+type SearchFilters struct {
+	Name        string
+	Description string
+	Category    string
+	MinPriceHT  *int64
+	MaxPriceHT  *int64
+	MinPriceTTC *int64
+	MaxPriceTTC *int64
+}
 
 type ValidationError struct {
 	Field   string

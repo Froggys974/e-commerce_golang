@@ -20,12 +20,12 @@ func New(prefix string) string {
 	return prefix + "-" + Code(length)
 }
 
-func Code(n int) string {
-	randomBytes := make([]byte, n)
+func Code(size int) string {
+	randomBytes := make([]byte, size)
 	// rand read jamais en erreur depuis go 1 24
 	rand.Read(randomBytes)
 
-	code := make([]byte, n)
+	code := make([]byte, size)
 	for i, randomByte := range randomBytes {
 		alphabetI := randomByte % byte(len(alphabet))
 		code[i] = alphabet[alphabetI]

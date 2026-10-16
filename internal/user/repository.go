@@ -30,11 +30,11 @@ func (r *Repository) List(ctx context.Context) ([]User, error) {
 
 	users := []User{}
 	for rows.Next() {
-		var u User
-		if err := rows.Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Role, &u.Confirmed, &u.CreatedAt); err != nil {
+		var user User
+		if err := rows.Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Role, &user.Confirmed, &user.CreatedAt); err != nil {
 			return nil, fmt.Errorf("lecture d'un utilisateur : %w", err)
 		}
-		users = append(users, u)
+		users = append(users, user)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("liste des utilisateurs : %w", err)
@@ -43,46 +43,46 @@ func (r *Repository) List(ctx context.Context) ([]User, error) {
 }
 
 func (r *Repository) FindByID(ctx context.Context, id int64) (User, error) {
-	var u User
+	var user User
 	err := r.db.QueryRowContext(ctx,
 		`SELECT id, email, password_hash, role, confirmed, created_at
 		FROM users WHERE id = $1`,
 		id,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Role, &u.Confirmed, &u.CreatedAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Role, &user.Confirmed, &user.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, NotFoundError{ID: id}
 	}
 	if err != nil {
 		return User{}, fmt.Errorf("recherche de l'utilisateur %d : %w", id, err)
 	}
-	return u, nil
+	return user, nil
 }
 
 func (r *Repository) FindByEmail(ctx context.Context, email string) (User, error) {
-	var u User
+	var user User
 	err := r.db.QueryRowContext(ctx,
 		`SELECT id, email, password_hash, role, confirmed, created_at
 		FROM users WHERE email = $1`,
 		email,
-	).Scan(&u.ID, &u.Email, &u.PasswordHash, &u.Role, &u.Confirmed, &u.CreatedAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Role, &user.Confirmed, &user.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrEmailNotFound
 	}
 	if err != nil {
 		return User{}, fmt.Errorf("recherche de l'utilisateur %s : %w", email, err)
 	}
-	return u, nil
+	return user, nil
 }
 
-func (r *Repository) Create(ctx context.Context, u *User) error {
+func (r *Repository) Create(ctx context.Context, user *User) error {
 	err := r.db.QueryRowContext(ctx,
 		`INSERT INTO users (email, password_hash, role)
 		VALUES ($1, $2, $3)
 		RETURNING id, created_at`,
-		u.Email, u.PasswordHash, u.Role,
-	).Scan(&u.ID, &u.CreatedAt)
+		user.Email, user.PasswordHash, user.Role,
+	).Scan(&user.ID, &user.CreatedAt)
 	if db.IsUniqueViolation(err) {
-		return EmailTakenError{Email: u.Email}
+		return EmailTakenError{Email: user.Email}
 	}
 	if err != nil {
 		return fmt.Errorf("création de l'utilisateur : %w", err)
@@ -90,18 +90,18 @@ func (r *Repository) Create(ctx context.Context, u *User) error {
 	return nil
 }
 
-func (r *Repository) Update(ctx context.Context, u User) error {
+func (r *Repository) Update(ctx context.Context, user User) error {
 	result, err := r.db.ExecContext(ctx,
 		`UPDATE users SET email = $1, role = $2 WHERE id = $3`,
-		u.Email, u.Role, u.ID,
+		user.Email, user.Role, user.ID,
 	)
 	if db.IsUniqueViolation(err) {
-		return EmailTakenError{Email: u.Email}
+		return EmailTakenError{Email: user.Email}
 	}
 	if err != nil {
-		return fmt.Errorf("mise à jour de l'utilisateur %d : %w", u.ID, err)
+		return fmt.Errorf("mise à jour de l'utilisateur %d : %w", user.ID, err)
 	}
-	return checkFound(result, NotFoundError{ID: u.ID})
+	return checkFound(result, NotFoundError{ID: user.ID})
 }
 
 func (r *Repository) Delete(ctx context.Context, id int64) error {

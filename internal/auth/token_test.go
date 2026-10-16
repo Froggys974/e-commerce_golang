@@ -37,9 +37,9 @@ func TestAccessToken(t *testing.T) {
 		{"pas un token", secret, "abc", now},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := parseAccessToken(tt.secret, tt.token, tt.now)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			_, err := parseAccessToken(testCase.secret, testCase.token, testCase.now)
 			if !errors.Is(err, ErrInvalidToken) {
 				t.Errorf("erreur = %v; attendu ErrInvalidToken", err)
 			}
