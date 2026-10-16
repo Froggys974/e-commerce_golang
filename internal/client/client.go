@@ -4,9 +4,9 @@ import (
 	"errors"
 	"os"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
-
 	"github.com/Froggys974/e-commerce_golang/internal/apiclient"
 )
 
@@ -28,7 +28,8 @@ func Run() error {
 		return err
 	}
 	lipgloss.Println(successStyle.Render("✓ Connecté en tant que " + account.Email + " (" + string(account.Role) + ")"))
-	return nil
+	_, err = tea.NewProgram(newCatalog(api)).Run()
+	return err
 }
 
 // API_URL ==> pointer vers ngrok url pour la soutenance
