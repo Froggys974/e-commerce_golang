@@ -26,33 +26,33 @@ func newMenuScreen() menuScreen {
 	}
 }
 
-func (m menuScreen) update(msg tea.Msg) (menuScreen, tea.Cmd) {
+func (model menuScreen) update(msg tea.Msg) (menuScreen, tea.Cmd) {
 	keyPress, ok := msg.(tea.KeyPressMsg)
 	if !ok {
-		return m, nil
+		return model, nil
 	}
 
 	switch keyPress.String() {
 	case "up", "k":
-		if m.cursor > 0 {
-			m.cursor--
+		if model.cursor > 0 {
+			model.cursor--
 		}
 	case "down", "j":
-		if m.cursor < len(m.items)-1 {
-			m.cursor++
+		if model.cursor < len(model.items)-1 {
+			model.cursor++
 		}
 	case "enter":
-		return m, openScreen(m.items[m.cursor].target)
+		return model, openScreen(model.items[model.cursor].target)
 	case "q", "esc":
-		return m, tea.Quit
+		return model, tea.Quit
 	}
-	return m, nil
+	return model, nil
 }
 
-func (m menuScreen) view() string {
+func (model menuScreen) view() string {
 	var builder strings.Builder
-	for index, item := range m.items {
-		if index == m.cursor {
+	for index, item := range model.items {
+		if index == model.cursor {
 			builder.WriteString(selectedStyle.Render("> "+item.label) + "\n")
 		} else {
 			builder.WriteString("  " + item.label + "\n")

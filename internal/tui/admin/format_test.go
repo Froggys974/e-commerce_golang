@@ -18,7 +18,7 @@ func TestParseEuros(t *testing.T) {
 		}
 	}
 
-	for _, input := range []string{"", "abc", "19,999", "-5", "19,", ",50", "1,2,3"} {
+	for _, input := range []string{"", "abc", "19,999", "-5", "+5", "19,-5", "19,", ",50", "1,2,3", "99999999999999999999"} {
 		if _, err := parseEuros(input); err == nil {
 			t.Errorf("parseEuros(%q) aurait dû échouer", input)
 		}

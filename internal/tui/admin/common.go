@@ -34,14 +34,14 @@ func feedbackFrom(msg actionDoneMsg) feedback {
 	return feedback{text: msg.message}
 }
 
-func (f feedback) view() string {
+func (message feedback) view() string {
 	switch {
-	case f.text == "":
+	case message.text == "":
 		return ""
-	case f.isError:
-		return errorStyle.Render("✗ "+f.text) + "\n\n"
+	case message.isError:
+		return errorStyle.Render("✗ "+message.text) + "\n\n"
 	default:
-		return successStyle.Render("✓ "+f.text) + "\n\n"
+		return successStyle.Render("✓ "+message.text) + "\n\n"
 	}
 }
 

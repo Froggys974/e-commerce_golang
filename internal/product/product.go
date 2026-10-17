@@ -43,6 +43,6 @@ type ValidationError struct {
 	Message string
 }
 
-func (e ValidationError) Error() string {
-	return fmt.Sprintf("%s : %s", e.Field, e.Message)
+func (err ValidationError) Error() string {
+	return fmt.Sprintf("%s : %s", err.Field, err.Message)
 }

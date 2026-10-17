@@ -9,6 +9,7 @@ import (
 	"net/smtp"
 	"os"
 	"strings"
+	"time"
 )
 
 type Sender struct {
@@ -20,15 +21,59 @@ func NewSender(host, port, from string) *Sender {
 	return &Sender{address: net.JoinHostPort(host, port), from: from}
 }
 
+const sendTimeout = 10 * time.Second
+
 func (sender *Sender) SendCode(to, subject, code string) error {
 	message, err := buildMessage(sender.from, to, subject, code)
 	if err != nil {
 		return err
 	}
-	if err := smtp.SendMail(sender.address, nil, sender.from, []string{to}, message); err != nil {
+	if err := sender.send(to, message); err != nil {
 		return fmt.Errorf("envoi du mail à %s : %w", to, err)
 	}
 	return nil
+}
+
+// comme smtp SendMail mais avec un delai maximal
+func (sender *Sender) send(to string, message []byte) error {
+	conn, err := net.DialTimeout("tcp", sender.address, sendTimeout)
+	if err != nil {
+		return err
+	}
+	if err := conn.SetDeadline(time.Now().Add(sendTimeout)); err != nil {
+		conn.Close()
+		return err
+	}
+
+	host, _, err := net.SplitHostPort(sender.address)
+	if err != nil {
+		conn.Close()
+		return err
+	}
+	client, err := smtp.NewClient(conn, host)
+	if err != nil {
+		conn.Close()
+		return err
+	}
+	defer client.Close()
+
+	if err := client.Mail(sender.from); err != nil {
+		return err
+	}
+	if err := client.Rcpt(to); err != nil {
+		return err
+	}
+	writer, err := client.Data()
+	if err != nil {
+		return err
+	}
+	if _, err := writer.Write(message); err != nil {
+		return err
+	}
+	if err := writer.Close(); err != nil {
+		return err
+	}
+	return client.Quit()
 }
 
 func buildMessage(from, to, subject, code string) ([]byte, error) {

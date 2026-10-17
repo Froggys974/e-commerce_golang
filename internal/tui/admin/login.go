@@ -49,19 +49,19 @@ func newLoginScreen(errMessage string) loginScreen {
 	return loginScreen{form: form, credentials: creds, errMessage: errMessage}
 }
 
-func (m loginScreen) update(msg tea.Msg, api *apiclient.Client) (loginScreen, tea.Cmd) {
-	if m.loading {
-		return m, nil
+func (model loginScreen) update(msg tea.Msg, api *apiclient.Client) (loginScreen, tea.Cmd) {
+	if model.loading {
+		return model, nil
 	}
 
 	var cmd tea.Cmd
-	m.form, cmd = updateForm(m.form, msg)
+	model.form, cmd = updateForm(model.form, msg)
 
-	if m.form.State == huh.StateCompleted {
-		m.loading = true
-		return m, tea.Batch(cmd, loginCmd(api, m.credentials.email, m.credentials.password))
+	if model.form.State == huh.StateCompleted {
+		model.loading = true
+		return model, tea.Batch(cmd, loginCmd(api, model.credentials.email, model.credentials.password))
 	}
-	return m, cmd
+	return model, cmd
 }
 
 func loginCmd(api *apiclient.Client, email, password string) tea.Cmd {
@@ -80,15 +80,15 @@ func loginCmd(api *apiclient.Client, email, password string) tea.Cmd {
 	}
 }
 
-func (m loginScreen) view() string {
-	if m.loading {
+func (model loginScreen) view() string {
+	if model.loading {
 		return "Connexion..."
 	}
 	var builder strings.Builder
-	if m.errMessage != "" {
-		builder.WriteString(errorStyle.Render("✗ "+m.errMessage) + "\n\n")
+	if model.errMessage != "" {
+		builder.WriteString(errorStyle.Render("✗ "+model.errMessage) + "\n\n")
 	}
-	builder.WriteString(m.form.View() + "\n\n")
+	builder.WriteString(model.form.View() + "\n\n")
 	builder.WriteString(helpStyle.Render("entrée valider • ctrl+c quitter"))
 	return builder.String()
 }

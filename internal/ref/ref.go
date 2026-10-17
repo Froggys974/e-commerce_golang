@@ -26,9 +26,9 @@ func Code(size int) string {
 	rand.Read(randomBytes)
 
 	code := make([]byte, size)
-	for i, randomByte := range randomBytes {
+	for index, randomByte := range randomBytes {
 		alphabetI := randomByte % byte(len(alphabet))
-		code[i] = alphabet[alphabetI]
+		code[index] = alphabet[alphabetI]
 	}
 	return string(code)
 }

@@ -16,8 +16,8 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) CreateToken(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time) error {
-	_, err := r.db.ExecContext(ctx,
+func (repo *Repository) CreateToken(ctx context.Context, userID int64, tokenHash string, expiresAt time.Time) error {
+	_, err := repo.db.ExecContext(ctx,
 		`INSERT INTO refresh_tokens (token_hash, user_id, expires_at) VALUES ($1, $2, $3)`,
 		tokenHash, userID, expiresAt,
 	)
@@ -27,8 +27,8 @@ func (r *Repository) CreateToken(ctx context.Context, userID int64, tokenHash st
 	return nil
 }
 
-func (r *Repository) RotateToken(ctx context.Context, oldHash, newHash string, expiresAt time.Time) (int64, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
+func (repo *Repository) RotateToken(ctx context.Context, oldHash, newHash string, expiresAt time.Time) (int64, error) {
+	tx, err := repo.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("rotation du refresh token : %w", err)
 	}
@@ -63,8 +63,8 @@ func (r *Repository) RotateToken(ctx context.Context, oldHash, newHash string, e
 	return userID, nil
 }
 
-func (r *Repository) RevokeToken(ctx context.Context, tokenHash string) error {
-	_, err := r.db.ExecContext(ctx, `DELETE FROM refresh_tokens WHERE token_hash = $1`, tokenHash)
+func (repo *Repository) RevokeToken(ctx context.Context, tokenHash string) error {
+	_, err := repo.db.ExecContext(ctx, `DELETE FROM refresh_tokens WHERE token_hash = $1`, tokenHash)
 	if err != nil {
 		return fmt.Errorf("suppression du refresh token : %w", err)
 	}
