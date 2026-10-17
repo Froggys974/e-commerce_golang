@@ -17,3 +17,17 @@ func (client *Client) SearchProducts(name string) ([]product.Product, error) {
 	err := client.do(http.MethodGet, "/products?"+query.Encode(), nil, &products)
 	return products, err
 }
+
+type CreateProductInput struct {
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	Category     string `json:"category"`
+	PriceHTCents int64  `json:"price_ht_cents"`
+	VATPercent   int    `json:"vat_percent"`
+}
+
+func (client *Client) CreateProduct(input CreateProductInput) (product.Product, error) {
+	var created product.Product
+	err := client.do(http.MethodPost, "/admin/products", input, &created)
+	return created, err
+}

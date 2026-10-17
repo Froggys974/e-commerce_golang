@@ -28,7 +28,7 @@ func (handler *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Requ
 		writeError(w, err)
 		return
 	default:
-		sendCode(request.Email, code)
+		handler.sendCode(request.Email, "Réinitialisation du mot de passe", code)
 	}
 	httpjson.Write(w, http.StatusOK, map[string]string{"message": codeSentMessage})
 }

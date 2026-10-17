@@ -16,9 +16,14 @@ services:
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
       - COLORTERM=truecolor
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+      - MAIL_FROM=no-reply@ecommerce.local
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   db:
     image: postgres:18-alpine
@@ -44,6 +49,12 @@ services:
       - ADMINER_DEFAULT_SERVER=db
     depends_on:
       - db
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
 
 volumes:
   db-data:

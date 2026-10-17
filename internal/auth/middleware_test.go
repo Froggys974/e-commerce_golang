@@ -11,7 +11,7 @@ import (
 
 func TestRequireAdmin(t *testing.T) {
 	secret := []byte("secret")
-	handler := NewHandler(nil, NewService(nil, nil, secret))
+	handler := NewHandler(nil, NewService(nil, nil, secret), nil)
 
 	protected := handler.RequireAdmin(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

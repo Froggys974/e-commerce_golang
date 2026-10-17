@@ -12,6 +12,7 @@ import (
 	"github.com/Froggys974/e-commerce_golang/internal/auth"
 	"github.com/Froggys974/e-commerce_golang/internal/db"
 	"github.com/Froggys974/e-commerce_golang/internal/httpjson"
+	"github.com/Froggys974/e-commerce_golang/internal/mail"
 	"github.com/Froggys974/e-commerce_golang/internal/product"
 	"github.com/Froggys974/e-commerce_golang/internal/user"
 )
@@ -46,7 +47,7 @@ func Run() error {
 		return err
 	}
 
-	authHandler := auth.NewHandler(userService, authService)
+	authHandler := auth.NewHandler(userService, authService, mail.FromEnv())
 	userHandler := user.NewHandler(userService)
 	productHandler := product.NewHandler(product.NewService(product.NewRepository(database)))
 

@@ -92,6 +92,9 @@ docker compose exec go go run ./cmd/client
 docker compose exec go go run ./cmd/admin
 # go run main.go admin
 
+# Emails (codes de confirmation / reset) : interface Mailpit
+http://localhost:8025
+
 # Formatage du code
 docker compose exec go gofmt -w .
 ```

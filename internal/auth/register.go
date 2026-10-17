@@ -34,12 +34,7 @@ func (handler *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	default:
-		sendCode(request.Email, code)
+		handler.sendCode(request.Email, "Confirmation de votre compte", code)
 	}
 	httpjson.Write(w, http.StatusCreated, map[string]string{"message": codeSentMessage})
-}
-
-// TODO: envoyer par email via Mailpit / Mailtrap ?
-func sendCode(email, code string) {
-	log.Printf("[MAIL] code pour %s : %s", email, code)
 }
