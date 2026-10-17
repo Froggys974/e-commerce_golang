@@ -19,13 +19,26 @@ type userService interface {
 	GetUser(ctx context.Context, id int64) (user.User, error)
 }
 
-type Handler struct {
-	users userService
-	auth  *Service
+type codeSender interface {
+	SendCode(to, subject, code string) error
 }
 
-func NewHandler(users userService, auth *Service) *Handler {
-	return &Handler{users: users, auth: auth}
+type Handler struct {
+	users  userService
+	auth   *Service
+	mailer codeSender
+}
+
+func NewHandler(users userService, auth *Service, mailer codeSender) *Handler {
+	return &Handler{users: users, auth: auth, mailer: mailer}
+}
+
+func (handler *Handler) sendCode(email, subject, code string) {
+	go func() {
+		if err := handler.mailer.SendCode(email, subject, code); err != nil {
+			log.Printf("mail: %v", err)
+		}
+	}()
 }
 
 func writeError(w http.ResponseWriter, err error) {

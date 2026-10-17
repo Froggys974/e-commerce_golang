@@ -45,7 +45,7 @@ func (handler *Handler) ResendConfirmCode(w http.ResponseWriter, r *http.Request
 		writeError(w, err)
 		return
 	default:
-		sendCode(request.Email, code)
+		handler.sendCode(request.Email, "Confirmation de votre compte", code)
 	}
 	httpjson.Write(w, http.StatusOK, map[string]string{"message": codeSentMessage})
 }
