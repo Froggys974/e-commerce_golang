@@ -38,24 +38,24 @@ type fakeRepository struct {
 	listCalls   int
 }
 
-func (f *fakeRepository) Create(ctx context.Context, product *Product) error {
-	if f.collisions > 0 {
-		f.collisions--
+func (fake *fakeRepository) Create(ctx context.Context, product *Product) error {
+	if fake.collisions > 0 {
+		fake.collisions--
 		return ErrRefTaken
 	}
-	product.ID = int64(len(f.created) + 1)
-	f.created = append(f.created, *product)
+	product.ID = int64(len(fake.created) + 1)
+	fake.created = append(fake.created, *product)
 	return nil
 }
 
-func (f *fakeRepository) List(ctx context.Context, filters SearchFilters) ([]Product, error) {
-	f.lastFilters = filters
-	f.listCalls++
-	return f.created, nil
+func (fake *fakeRepository) List(ctx context.Context, filters SearchFilters) ([]Product, error) {
+	fake.lastFilters = filters
+	fake.listCalls++
+	return fake.created, nil
 }
 
-func (f *fakeRepository) FindByRef(ctx context.Context, productRef string) (Product, error) {
-	for _, product := range f.created {
+func (fake *fakeRepository) FindByRef(ctx context.Context, productRef string) (Product, error) {
+	for _, product := range fake.created {
 		if product.Ref == productRef {
 			return product, nil
 		}

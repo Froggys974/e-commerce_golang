@@ -59,12 +59,12 @@ func (client *Client) do(method, path string, body any, destination any) error {
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode >= 400 {
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var errorBody struct {
 			Error string `json:"error"`
 		}
 		if json.NewDecoder(response.Body).Decode(&errorBody) != nil || errorBody.Error == "" {
-			errorBody.Error = response.Status
+			errorBody.Error = fmt.Sprintf("%s (%s %s)", response.Status, method, path)
 		}
 		return &APIError{Status: response.StatusCode, Message: errorBody.Error}
 	}

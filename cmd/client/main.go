@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/Froggys974/e-commerce_golang/internal/client"
+	"github.com/Froggys974/e-commerce_golang/internal/tui/client"
 )
 
 func main() {

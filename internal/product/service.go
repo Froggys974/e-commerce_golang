@@ -38,7 +38,7 @@ func NewService(repo repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Create(ctx context.Context, input CreateInput) (Product, error) {
+func (service *Service) Create(ctx context.Context, input CreateInput) (Product, error) {
 	product := Product{
 		Name:         strings.TrimSpace(input.Name),
 		Description:  strings.TrimSpace(input.Description),
@@ -56,7 +56,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (Product, error
 
 	for range maxRefTries {
 		product.Ref = ref.New(ref.Product)
-		err := s.repo.Create(ctx, &product)
+		err := service.repo.Create(ctx, &product)
 		if errors.Is(err, ErrRefTaken) {
 			continue
 		}
@@ -82,7 +82,7 @@ func validate(product Product) error {
 	return nil
 }
 
-func (s *Service) Search(ctx context.Context, filters SearchFilters) ([]Product, error) {
+func (service *Service) Search(ctx context.Context, filters SearchFilters) ([]Product, error) {
 	filters.Name = strings.TrimSpace(filters.Name)
 	filters.Description = strings.TrimSpace(filters.Description)
 	filters.Category = strings.ToLower(strings.TrimSpace(filters.Category))
@@ -90,15 +90,15 @@ func (s *Service) Search(ctx context.Context, filters SearchFilters) ([]Product,
 	if err := validateSearch(filters); err != nil {
 		return nil, err
 	}
-	return s.repo.List(ctx, filters)
+	return service.repo.List(ctx, filters)
 }
 
-func (s *Service) GetByRef(ctx context.Context, productRef string) (Product, error) {
+func (service *Service) GetByRef(ctx context.Context, productRef string) (Product, error) {
 	productRef = strings.ToUpper(strings.TrimSpace(productRef))
 	if productRef == "" {
 		return Product{}, ErrNotFound
 	}
-	return s.repo.FindByRef(ctx, productRef)
+	return service.repo.FindByRef(ctx, productRef)
 }
 
 func validateSearch(filters SearchFilters) error {

@@ -28,8 +28,8 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) Create(ctx context.Context, product *Product) error {
-	err := r.db.QueryRowContext(ctx,
+func (repo *Repository) Create(ctx context.Context, product *Product) error {
+	err := repo.db.QueryRowContext(ctx,
 		`INSERT INTO products (ref, name, description, category, price_ht_cents, vat_percent)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at`,
@@ -44,10 +44,10 @@ func (r *Repository) Create(ctx context.Context, product *Product) error {
 	return nil
 }
 
-func (r *Repository) List(ctx context.Context, filters SearchFilters) ([]Product, error) {
+func (repo *Repository) List(ctx context.Context, filters SearchFilters) ([]Product, error) {
 	query, args := buildSearchQuery(filters)
 
-	rows, err := r.db.QueryContext(ctx, query, args...)
+	rows, err := repo.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("recherche de produits : %w", err)
 	}
@@ -68,8 +68,8 @@ func (r *Repository) List(ctx context.Context, filters SearchFilters) ([]Product
 	return products, nil
 }
 
-func (r *Repository) FindByRef(ctx context.Context, productRef string) (Product, error) {
-	row := r.db.QueryRowContext(ctx,
+func (repo *Repository) FindByRef(ctx context.Context, productRef string) (Product, error) {
+	row := repo.db.QueryRowContext(ctx,
 		"SELECT "+productColumns+" FROM products WHERE ref = $1",
 		productRef,
 	)

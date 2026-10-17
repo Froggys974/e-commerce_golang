@@ -18,8 +18,8 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) List(ctx context.Context) ([]User, error) {
-	rows, err := r.db.QueryContext(ctx,
+func (repo *Repository) List(ctx context.Context) ([]User, error) {
+	rows, err := repo.db.QueryContext(ctx,
 		`SELECT id, email, password_hash, role, confirmed, created_at
 		FROM users ORDER BY id`,
 	)
@@ -42,9 +42,9 @@ func (r *Repository) List(ctx context.Context) ([]User, error) {
 	return users, nil
 }
 
-func (r *Repository) FindByID(ctx context.Context, id int64) (User, error) {
+func (repo *Repository) FindByID(ctx context.Context, id int64) (User, error) {
 	var user User
-	err := r.db.QueryRowContext(ctx,
+	err := repo.db.QueryRowContext(ctx,
 		`SELECT id, email, password_hash, role, confirmed, created_at
 		FROM users WHERE id = $1`,
 		id,
@@ -58,9 +58,9 @@ func (r *Repository) FindByID(ctx context.Context, id int64) (User, error) {
 	return user, nil
 }
 
-func (r *Repository) FindByEmail(ctx context.Context, email string) (User, error) {
+func (repo *Repository) FindByEmail(ctx context.Context, email string) (User, error) {
 	var user User
-	err := r.db.QueryRowContext(ctx,
+	err := repo.db.QueryRowContext(ctx,
 		`SELECT id, email, password_hash, role, confirmed, created_at
 		FROM users WHERE email = $1`,
 		email,
@@ -74,8 +74,8 @@ func (r *Repository) FindByEmail(ctx context.Context, email string) (User, error
 	return user, nil
 }
 
-func (r *Repository) Create(ctx context.Context, user *User) error {
-	err := r.db.QueryRowContext(ctx,
+func (repo *Repository) Create(ctx context.Context, user *User) error {
+	err := repo.db.QueryRowContext(ctx,
 		`INSERT INTO users (email, password_hash, role)
 		VALUES ($1, $2, $3)
 		RETURNING id, created_at`,
@@ -90,8 +90,8 @@ func (r *Repository) Create(ctx context.Context, user *User) error {
 	return nil
 }
 
-func (r *Repository) Update(ctx context.Context, user User) error {
-	result, err := r.db.ExecContext(ctx,
+func (repo *Repository) Update(ctx context.Context, user User) error {
+	result, err := repo.db.ExecContext(ctx,
 		`UPDATE users SET email = $1, role = $2 WHERE id = $3`,
 		user.Email, user.Role, user.ID,
 	)
@@ -104,16 +104,16 @@ func (r *Repository) Update(ctx context.Context, user User) error {
 	return checkFound(result, NotFoundError{ID: user.ID})
 }
 
-func (r *Repository) Delete(ctx context.Context, id int64) error {
-	result, err := r.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
+func (repo *Repository) Delete(ctx context.Context, id int64) error {
+	result, err := repo.db.ExecContext(ctx, `DELETE FROM users WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("suppression de l'utilisateur %d : %w", id, err)
 	}
 	return checkFound(result, NotFoundError{ID: id})
 }
 
-func (r *Repository) Confirm(ctx context.Context, id int64) error {
-	result, err := r.db.ExecContext(ctx,
+func (repo *Repository) Confirm(ctx context.Context, id int64) error {
+	result, err := repo.db.ExecContext(ctx,
 		`UPDATE users
 		SET confirmed = true, confirm_code = NULL, confirm_expires_at = NULL, confirm_attempts = 0
 		WHERE id = $1`,
@@ -125,8 +125,8 @@ func (r *Repository) Confirm(ctx context.Context, id int64) error {
 	return checkFound(result, NotFoundError{ID: id})
 }
 
-func (r *Repository) SetConfirmCode(ctx context.Context, email, code string, expiresAt time.Time) error {
-	result, err := r.db.ExecContext(ctx,
+func (repo *Repository) SetConfirmCode(ctx context.Context, email, code string, expiresAt time.Time) error {
+	result, err := repo.db.ExecContext(ctx,
 		`UPDATE users
 		SET confirm_code = $2, confirm_expires_at = $3, confirm_attempts = 0
 		WHERE email = $1 AND confirmed = false`,
@@ -138,8 +138,8 @@ func (r *Repository) SetConfirmCode(ctx context.Context, email, code string, exp
 	return checkFound(result, ErrEmailNotFound)
 }
 
-func (r *Repository) ConfirmByCode(ctx context.Context, email, code string, maxAttempts int) error {
-	result, err := r.db.ExecContext(ctx,
+func (repo *Repository) ConfirmByCode(ctx context.Context, email, code string, maxAttempts int) error {
+	result, err := repo.db.ExecContext(ctx,
 		`UPDATE users
 		SET confirmed = true, confirm_code = NULL, confirm_expires_at = NULL, confirm_attempts = 0
 		WHERE email = $1 AND confirm_code = $2 AND confirmed = false
@@ -157,7 +157,7 @@ func (r *Repository) ConfirmByCode(ctx context.Context, email, code string, maxA
 		return nil
 	}
 
-	_, err = r.db.ExecContext(ctx,
+	_, err = repo.db.ExecContext(ctx,
 		`UPDATE users SET confirm_attempts = confirm_attempts + 1
 		WHERE email = $1 AND confirmed = false`,
 		email,
@@ -168,8 +168,8 @@ func (r *Repository) ConfirmByCode(ctx context.Context, email, code string, maxA
 	return ErrInvalidCode
 }
 
-func (r *Repository) SetResetCode(ctx context.Context, email, code string, expiresAt time.Time) error {
-	result, err := r.db.ExecContext(ctx,
+func (repo *Repository) SetResetCode(ctx context.Context, email, code string, expiresAt time.Time) error {
+	result, err := repo.db.ExecContext(ctx,
 		`UPDATE users
 		SET reset_code = $2, reset_expires_at = $3, reset_attempts = 0
 		WHERE email = $1`,
@@ -181,8 +181,8 @@ func (r *Repository) SetResetCode(ctx context.Context, email, code string, expir
 	return checkFound(result, ErrEmailNotFound)
 }
 
-func (r *Repository) ResetPassword(ctx context.Context, email, code, passwordHash string, maxAttempts int) error {
-	tx, err := r.db.BeginTx(ctx, nil)
+func (repo *Repository) ResetPassword(ctx context.Context, email, code, passwordHash string, maxAttempts int) error {
+	tx, err := repo.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("réinitialisation du mot de passe : %w", err)
 	}
@@ -199,7 +199,7 @@ func (r *Repository) ResetPassword(ctx context.Context, email, code, passwordHas
 		email, code, passwordHash, maxAttempts,
 	).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
-		_, err = r.db.ExecContext(ctx,
+		_, err = repo.db.ExecContext(ctx,
 			`UPDATE users SET reset_attempts = reset_attempts + 1
 			WHERE email = $1 AND reset_code IS NOT NULL`,
 			email,

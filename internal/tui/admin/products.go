@@ -51,8 +51,8 @@ func newProductsScreen(api *apiclient.Client) productsScreen {
 	return productsScreen{api: api, table: productsTable}
 }
 
-func (m productsScreen) init() tea.Cmd {
-	return loadProductsCmd(m.api)
+func (model productsScreen) init() tea.Cmd {
+	return loadProductsCmd(model.api)
 }
 
 func loadProductsCmd(api *apiclient.Client) tea.Cmd {
@@ -62,55 +62,55 @@ func loadProductsCmd(api *apiclient.Client) tea.Cmd {
 	}
 }
 
-func (m productsScreen) update(msg tea.Msg) (productsScreen, tea.Cmd) {
+func (model productsScreen) update(msg tea.Msg) (productsScreen, tea.Cmd) {
 	switch msg := msg.(type) {
 	case productsLoadedMsg:
 		if msg.err != nil {
-			m.feedback = feedback{text: msg.err.Error(), isError: true}
-			return m, nil
+			model.feedback = feedback{text: msg.err.Error(), isError: true}
+			return model, nil
 		}
-		m.products = msg.products
-		m.table.SetRows(productRows(msg.products))
-		if m.table.Cursor() >= len(msg.products) {
-			m.table.SetCursor(0)
+		model.products = msg.products
+		model.table.SetRows(productRows(msg.products))
+		if model.table.Cursor() >= len(msg.products) {
+			model.table.SetCursor(0)
 		}
-		return m, nil
+		return model, nil
 
 	case actionDoneMsg:
-		m.feedback = feedbackFrom(msg)
-		return m, loadProductsCmd(m.api)
+		model.feedback = feedbackFrom(msg)
+		return model, loadProductsCmd(model.api)
 	}
 
-	if m.form != nil {
-		return m.updateForm(msg)
+	if model.form != nil {
+		return model.updateForm(msg)
 	}
 
 	keyPress, ok := msg.(tea.KeyPressMsg)
 	if !ok {
-		return m, nil
+		return model, nil
 	}
 	switch keyPress.String() {
 	case "esc":
-		return m, openScreen(screenMenu)
+		return model, openScreen(screenMenu)
 	case "up", "down":
 		var cmd tea.Cmd
-		m.table, cmd = m.table.Update(keyPress)
-		return m, cmd
+		model.table, cmd = model.table.Update(keyPress)
+		return model, cmd
 	case "n":
-		return m.openNewProductForm()
+		return model.openNewProductForm()
 	}
-	return m, nil
+	return model, nil
 }
 
-func (m productsScreen) openNewProductForm() (productsScreen, tea.Cmd) {
-	m.newProduct = &newProductFields{vatPercent: 20}
-	m.form = huh.NewForm(
+func (model productsScreen) openNewProductForm() (productsScreen, tea.Cmd) {
+	model.newProduct = &newProductFields{vatPercent: 20}
+	model.form = huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Nom").Value(&m.newProduct.name).Validate(required),
-			huh.NewInput().Title("Description").Value(&m.newProduct.description),
-			huh.NewInput().Title("Catégorie").Value(&m.newProduct.category).Validate(required),
+			huh.NewInput().Title("Nom").Value(&model.newProduct.name).Validate(required),
+			huh.NewInput().Title("Description").Value(&model.newProduct.description),
+			huh.NewInput().Title("Catégorie").Value(&model.newProduct.category).Validate(required),
 			huh.NewInput().Title("Prix HT en euros (ex : 19,99)").
-				Value(&m.newProduct.price).
+				Value(&model.newProduct.price).
 				Validate(func(value string) error {
 					_, err := parseEuros(value)
 					return err
@@ -122,27 +122,27 @@ func (m productsScreen) openNewProductForm() (productsScreen, tea.Cmd) {
 					huh.NewOption("5 %", 5),
 					huh.NewOption("0 %", 0),
 				).
-				Value(&m.newProduct.vatPercent),
+				Value(&model.newProduct.vatPercent),
 		),
 	).WithShowHelp(false)
-	m.feedback = feedback{}
-	return m, m.form.Init()
+	model.feedback = feedback{}
+	return model, model.form.Init()
 }
 
-func (m productsScreen) updateForm(msg tea.Msg) (productsScreen, tea.Cmd) {
+func (model productsScreen) updateForm(msg tea.Msg) (productsScreen, tea.Cmd) {
 	if isKey(msg, "esc") {
-		m.form = nil
-		return m, nil
+		model.form = nil
+		return model, nil
 	}
 
 	var cmd tea.Cmd
-	m.form, cmd = updateForm(m.form, msg)
-	if m.form.State != huh.StateCompleted {
-		return m, cmd
+	model.form, cmd = updateForm(model.form, msg)
+	if model.form.State != huh.StateCompleted {
+		return model, cmd
 	}
 
-	fields := *m.newProduct
-	m.form = nil
+	fields := *model.newProduct
+	model.form = nil
 	priceCents, _ := parseEuros(fields.price)
 	input := apiclient.CreateProductInput{
 		Name:         fields.name,
@@ -151,28 +151,28 @@ func (m productsScreen) updateForm(msg tea.Msg) (productsScreen, tea.Cmd) {
 		PriceHTCents: priceCents,
 		VATPercent:   fields.vatPercent,
 	}
-	return m, actionCmd("produit "+fields.name+" créé", func() error {
-		_, err := m.api.CreateProduct(input)
+	return model, actionCmd("produit "+fields.name+" créé", func() error {
+		_, err := model.api.CreateProduct(input)
 		return err
 	})
 }
 
-func (m productsScreen) view() string {
+func (model productsScreen) view() string {
 	var builder strings.Builder
 	builder.WriteString(titleStyle.Render("Produits") + "\n\n")
 
-	if m.form != nil {
-		builder.WriteString(m.form.View() + "\n\n")
+	if model.form != nil {
+		builder.WriteString(model.form.View() + "\n\n")
 		builder.WriteString(helpStyle.Render("entrée valider • échap annuler"))
 		return builder.String()
 	}
 
-	builder.WriteString(m.table.View() + "\n\n")
-	if len(m.products) > 0 {
-		builder.WriteString(helpStyle.Render("Description : "+m.products[m.table.Cursor()].Description) + "\n\n")
+	builder.WriteString(model.table.View() + "\n\n")
+	if len(model.products) > 0 {
+		builder.WriteString(helpStyle.Render("Description : "+model.products[model.table.Cursor()].Description) + "\n\n")
 	}
-	builder.WriteString(m.feedback.view())
-	builder.WriteString(helpStyle.Render(fmt.Sprintf("%d produit(s) • ↑/↓ naviguer • n nouveau • échap menu", len(m.products))))
+	builder.WriteString(model.feedback.view())
+	builder.WriteString(helpStyle.Render(fmt.Sprintf("%d produit(s) • ↑/↓ naviguer • n nouveau • échap menu", len(model.products))))
 	return builder.String()
 }
 

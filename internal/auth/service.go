@@ -41,39 +41,39 @@ func NewService(userService users, tokenRepo tokenRepository, secret []byte) *Se
 	return &Service{users: userService, tokens: tokenRepo, secret: secret}
 }
 
-func (s *Service) Login(ctx context.Context, email, password string) (Tokens, error) {
-	account, err := s.users.Authenticate(ctx, email, password)
+func (service *Service) Login(ctx context.Context, email, password string) (Tokens, error) {
+	account, err := service.users.Authenticate(ctx, email, password)
 	if err != nil {
 		return Tokens{}, err
 	}
 
 	refreshToken := rand.Text()
-	if err := s.tokens.CreateToken(ctx, account.ID, ref.Hash(refreshToken), time.Now().Add(refreshTokenTTL)); err != nil {
+	if err := service.tokens.CreateToken(ctx, account.ID, ref.Hash(refreshToken), time.Now().Add(refreshTokenTTL)); err != nil {
 		return Tokens{}, err
 	}
-	return s.newTokens(account, refreshToken)
+	return service.newTokens(account, refreshToken)
 }
 
-func (s *Service) Refresh(ctx context.Context, refreshToken string) (Tokens, error) {
+func (service *Service) Refresh(ctx context.Context, refreshToken string) (Tokens, error) {
 	newRefreshToken := rand.Text()
-	userID, err := s.tokens.RotateToken(ctx, ref.Hash(refreshToken), ref.Hash(newRefreshToken), time.Now().Add(refreshTokenTTL))
+	userID, err := service.tokens.RotateToken(ctx, ref.Hash(refreshToken), ref.Hash(newRefreshToken), time.Now().Add(refreshTokenTTL))
 	if err != nil {
 		return Tokens{}, err
 	}
 
-	account, err := s.users.GetUser(ctx, userID)
+	account, err := service.users.GetUser(ctx, userID)
 	if err != nil {
 		return Tokens{}, err
 	}
-	return s.newTokens(account, newRefreshToken)
+	return service.newTokens(account, newRefreshToken)
 }
 
-func (s *Service) Logout(ctx context.Context, refreshToken string) error {
-	return s.tokens.RevokeToken(ctx, ref.Hash(refreshToken))
+func (service *Service) Logout(ctx context.Context, refreshToken string) error {
+	return service.tokens.RevokeToken(ctx, ref.Hash(refreshToken))
 }
 
-func (s *Service) newTokens(account user.User, refreshToken string) (Tokens, error) {
-	accessToken, err := signAccessToken(s.secret, account.ID, account.Role, time.Now())
+func (service *Service) newTokens(account user.User, refreshToken string) (Tokens, error) {
+	accessToken, err := signAccessToken(service.secret, account.ID, account.Role, time.Now())
 	if err != nil {
 		return Tokens{}, err
 	}
@@ -84,6 +84,6 @@ func (s *Service) newTokens(account user.User, refreshToken string) (Tokens, err
 	}, nil
 }
 
-func (s *Service) parseAccessToken(token string) (AuthenticatedUser, error) {
-	return parseAccessToken(s.secret, token, time.Now())
+func (service *Service) parseAccessToken(token string) (AuthenticatedUser, error) {
+	return parseAccessToken(service.secret, token, time.Now())
 }
