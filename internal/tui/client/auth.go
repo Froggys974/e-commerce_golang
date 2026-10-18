@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+	"net/http"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -23,6 +25,7 @@ const (
 type authResultMsg struct {
 	next    authStep
 	message string
+	isError bool
 	err     error
 }
 
@@ -64,7 +67,7 @@ func (screen authScreen) update(msg tea.Msg, api *apiclient.Client) (authScreen,
 		if result.err != nil {
 			return screen.goTo(screen.step, feedback{text: result.err.Error(), isError: true})
 		}
-		return screen.goTo(result.next, feedback{text: result.message})
+		return screen.goTo(result.next, feedback{text: result.message, isError: result.isError})
 	}
 	if screen.loading {
 		return screen, nil
@@ -139,7 +142,12 @@ func authCmd(next authStep, message string, action func() error) tea.Cmd {
 
 func loginCmd(api *apiclient.Client, email, password string) tea.Cmd {
 	return func() tea.Msg {
-		if err := api.Login(email, password); err != nil {
+		err := api.Login(email, password)
+		var apiError *apiclient.APIError
+		if errors.As(err, &apiError) && apiError.Status == http.StatusForbidden {
+			return authResultMsg{next: stepConfirm, message: "Compte non confirmé : saisis le code reçu ou ctrl+r pour en recevoir un nouveau", isError: true}
+		}
+		if err != nil {
 			return authResultMsg{err: err}
 		}
 		return loggedInMsg{}
