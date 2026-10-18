@@ -28,31 +28,31 @@ func newFakeRepository() *fakeRepository {
 	}
 }
 
-func (f *fakeRepository) seed(user User) User {
-	user.ID = f.nextID
-	f.nextID++
-	f.users[user.ID] = user
+func (fake *fakeRepository) seed(user User) User {
+	user.ID = fake.nextID
+	fake.nextID++
+	fake.users[user.ID] = user
 	return user
 }
 
-func (f *fakeRepository) List(ctx context.Context) ([]User, error) {
-	users := make([]User, 0, len(f.users))
-	for _, user := range f.users {
+func (fake *fakeRepository) List(ctx context.Context) ([]User, error) {
+	users := make([]User, 0, len(fake.users))
+	for _, user := range fake.users {
 		users = append(users, user)
 	}
 	return users, nil
 }
 
-func (f *fakeRepository) FindByID(ctx context.Context, id int64) (User, error) {
-	user, ok := f.users[id]
+func (fake *fakeRepository) FindByID(ctx context.Context, id int64) (User, error) {
+	user, ok := fake.users[id]
 	if !ok {
 		return User{}, NotFoundError{ID: id}
 	}
 	return user, nil
 }
 
-func (f *fakeRepository) FindByEmail(ctx context.Context, email string) (User, error) {
-	for _, user := range f.users {
+func (fake *fakeRepository) FindByEmail(ctx context.Context, email string) (User, error) {
+	for _, user := range fake.users {
 		if user.Email == email {
 			return user, nil
 		}
@@ -60,79 +60,79 @@ func (f *fakeRepository) FindByEmail(ctx context.Context, email string) (User, e
 	return User{}, ErrEmailNotFound
 }
 
-func (f *fakeRepository) Create(ctx context.Context, user *User) error {
-	if f.createErr != nil {
-		return f.createErr
+func (fake *fakeRepository) Create(ctx context.Context, user *User) error {
+	if fake.createErr != nil {
+		return fake.createErr
 	}
-	user.ID = f.nextID
+	user.ID = fake.nextID
 	user.CreatedAt = time.Now()
-	f.nextID++
-	f.users[user.ID] = *user
+	fake.nextID++
+	fake.users[user.ID] = *user
 	return nil
 }
 
-func (f *fakeRepository) Update(ctx context.Context, user User) error {
-	if _, ok := f.users[user.ID]; !ok {
+func (fake *fakeRepository) Update(ctx context.Context, user User) error {
+	if _, ok := fake.users[user.ID]; !ok {
 		return NotFoundError{ID: user.ID}
 	}
-	f.users[user.ID] = user
-	f.updateCalls++
+	fake.users[user.ID] = user
+	fake.updateCalls++
 	return nil
 }
 
-func (f *fakeRepository) Delete(ctx context.Context, id int64) error {
-	if _, ok := f.users[id]; !ok {
+func (fake *fakeRepository) Delete(ctx context.Context, id int64) error {
+	if _, ok := fake.users[id]; !ok {
 		return NotFoundError{ID: id}
 	}
-	delete(f.users, id)
+	delete(fake.users, id)
 	return nil
 }
 
-func (f *fakeRepository) Confirm(ctx context.Context, id int64) error {
-	user, ok := f.users[id]
+func (fake *fakeRepository) Confirm(ctx context.Context, id int64) error {
+	user, ok := fake.users[id]
 	if !ok {
 		return NotFoundError{ID: id}
 	}
 	user.Confirmed = true
-	f.users[id] = user
-	delete(f.codes, id)
+	fake.users[id] = user
+	delete(fake.codes, id)
 	return nil
 }
 
-func (f *fakeRepository) SetConfirmCode(ctx context.Context, email, code string, expiresAt time.Time) error {
-	user, err := f.FindByEmail(ctx, email)
+func (fake *fakeRepository) SetConfirmCode(ctx context.Context, email, code string, expiresAt time.Time) error {
+	user, err := fake.FindByEmail(ctx, email)
 	if err != nil || user.Confirmed {
 		return ErrEmailNotFound
 	}
-	f.codes[user.ID] = code
+	fake.codes[user.ID] = code
 	return nil
 }
 
-func (f *fakeRepository) ConfirmByCode(ctx context.Context, email, code string, maxAttempts int) error {
-	user, err := f.FindByEmail(ctx, email)
-	if err != nil || user.Confirmed || f.codes[user.ID] != code {
+func (fake *fakeRepository) ConfirmByCode(ctx context.Context, email, code string, maxAttempts int) error {
+	user, err := fake.FindByEmail(ctx, email)
+	if err != nil || user.Confirmed || fake.codes[user.ID] != code {
 		return ErrInvalidCode
 	}
-	return f.Confirm(ctx, user.ID)
+	return fake.Confirm(ctx, user.ID)
 }
 
-func (f *fakeRepository) SetResetCode(ctx context.Context, email, code string, expiresAt time.Time) error {
-	user, err := f.FindByEmail(ctx, email)
+func (fake *fakeRepository) SetResetCode(ctx context.Context, email, code string, expiresAt time.Time) error {
+	user, err := fake.FindByEmail(ctx, email)
 	if err != nil {
 		return err
 	}
-	f.resetCodes[user.ID] = code
+	fake.resetCodes[user.ID] = code
 	return nil
 }
 
-func (f *fakeRepository) ResetPassword(ctx context.Context, email, code, passwordHash string, maxAttempts int) error {
-	user, err := f.FindByEmail(ctx, email)
-	if err != nil || f.resetCodes[user.ID] != code {
+func (fake *fakeRepository) ResetPassword(ctx context.Context, email, code, passwordHash string, maxAttempts int) error {
+	user, err := fake.FindByEmail(ctx, email)
+	if err != nil || fake.resetCodes[user.ID] != code {
 		return ErrInvalidCode
 	}
 	user.PasswordHash = passwordHash
-	f.users[user.ID] = user
-	delete(f.resetCodes, user.ID)
+	fake.users[user.ID] = user
+	delete(fake.resetCodes, user.ID)
 	return nil
 }
 

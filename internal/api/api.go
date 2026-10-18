@@ -10,9 +10,11 @@ import (
 	"time"
 
 	"github.com/Froggys974/e-commerce_golang/internal/auth"
+	"github.com/Froggys974/e-commerce_golang/internal/cart"
 	"github.com/Froggys974/e-commerce_golang/internal/db"
 	"github.com/Froggys974/e-commerce_golang/internal/httpjson"
 	"github.com/Froggys974/e-commerce_golang/internal/mail"
+	"github.com/Froggys974/e-commerce_golang/internal/order"
 	"github.com/Froggys974/e-commerce_golang/internal/product"
 	"github.com/Froggys974/e-commerce_golang/internal/user"
 )
@@ -40,6 +42,11 @@ func Run() error {
 	}
 	log.Println("Schema ok")
 
+	if err := db.Seed(database); err != nil {
+		return err
+	}
+	log.Println("Produits de démo ok")
+
 	userService := user.NewService(user.NewRepository(database), user.HashPassword, user.CheckPassword)
 	authService := auth.NewService(userService, auth.NewRepository(database), []byte(secret))
 
@@ -50,6 +57,8 @@ func Run() error {
 	authHandler := auth.NewHandler(userService, authService, mail.FromEnv())
 	userHandler := user.NewHandler(userService)
 	productHandler := product.NewHandler(product.NewService(product.NewRepository(database)))
+	cartHandler := cart.NewHandler(cart.NewService(cart.NewRepository(database)))
+	orderHandler := order.NewHandler(order.NewService(order.NewRepository(database)))
 
 	mux := http.NewServeMux()
 
@@ -72,6 +81,16 @@ func Run() error {
 	mux.HandleFunc("POST /admin/products", authHandler.RequireAdmin(productHandler.Create))
 	mux.HandleFunc("GET /products", productHandler.List)
 	mux.HandleFunc("GET /products/{ref}", productHandler.Get)
+
+	mux.HandleFunc("GET /cart", authHandler.RequireAuth(cartHandler.Get))
+	mux.HandleFunc("PUT /cart/items/{ref}", authHandler.RequireAuth(cartHandler.SetItem))
+	mux.HandleFunc("DELETE /cart/items/{ref}", authHandler.RequireAuth(cartHandler.RemoveItem))
+	mux.HandleFunc("POST /cart/checkout", authHandler.RequireAuth(orderHandler.Checkout))
+
+	mux.HandleFunc("GET /orders", authHandler.RequireAuth(orderHandler.ListMine))
+	mux.HandleFunc("GET /admin/orders", authHandler.RequireAdmin(orderHandler.ListAll))
+	mux.HandleFunc("POST /admin/orders", authHandler.RequireAdmin(orderHandler.Create))
+	mux.HandleFunc("PATCH /admin/orders/{ref}", authHandler.RequireAdmin(orderHandler.UpdateStatus))
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		httpjson.Write(w, http.StatusOK, map[string]string{"status": "ok"})

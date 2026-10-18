@@ -55,76 +55,76 @@ func NewModel(apiURL string) tea.Model {
 	}
 }
 
-func (m app) Init() tea.Cmd {
-	return m.login.form.Init()
+func (model app) Init() tea.Cmd {
+	return model.login.form.Init()
 }
 
-func (m app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (model app) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if isKey(msg, "ctrl+c") {
-		return m, tea.Quit
+		return model, tea.Quit
 	}
 
 	switch msg := msg.(type) {
 	case loginResultMsg:
 		if msg.err != nil {
-			m.login = newLoginScreen(msg.err.Error())
-			return m, m.login.form.Init()
+			model.login = newLoginScreen(msg.err.Error())
+			return model, model.login.form.Init()
 		}
-		m.account = msg.account
-		m.screen = screenMenu
-		return m, nil
+		model.account = msg.account
+		model.screen = screenMenu
+		return model, nil
 
 	case openScreenMsg:
-		m.screen = msg.screen
+		model.screen = msg.screen
 		switch msg.screen {
 		case screenUsers:
-			m.users = newUsersScreen(m.api, m.account.ID)
-			return m, m.users.init()
+			model.users = newUsersScreen(model.api, model.account.ID)
+			return model, model.users.init()
 		case screenProducts:
-			m.products = newProductsScreen(m.api)
-			return m, m.products.init()
+			model.products = newProductsScreen(model.api)
+			return model, model.products.init()
 		case screenOrders:
-			m.orders = newOrdersScreen(m.api)
-			return m, m.orders.init()
+			model.orders = newOrdersScreen(model.api)
+			return model, model.orders.init()
 		}
-		return m, nil
+		return model, nil
 	}
 
 	var cmd tea.Cmd
-	switch m.screen {
+	switch model.screen {
 	case screenLogin:
-		m.login, cmd = m.login.update(msg, m.api)
+		model.login, cmd = model.login.update(msg, model.api)
 	case screenMenu:
-		m.menu, cmd = m.menu.update(msg)
+		model.menu, cmd = model.menu.update(msg)
 	case screenUsers:
-		m.users, cmd = m.users.update(msg)
+		model.users, cmd = model.users.update(msg)
 	case screenProducts:
-		m.products, cmd = m.products.update(msg)
+		model.products, cmd = model.products.update(msg)
 	case screenOrders:
-		m.orders, cmd = m.orders.update(msg)
+		model.orders, cmd = model.orders.update(msg)
 	}
-	return m, cmd
+	return model, cmd
 }
 
-func (m app) View() tea.View {
+func (model app) View() tea.View {
 	var builder strings.Builder
 	builder.WriteString(titleStyle.Render("E-commerce : administration"))
-	if m.screen != screenLogin {
-		builder.WriteString(helpStyle.Render("  connecté : " + m.account.Email))
+	if model.screen != screenLogin {
+		builder.WriteString(helpStyle.Render("  connecté : " + model.account.Email))
 	}
 	builder.WriteString("\n\n")
 
-	switch m.screen {
+	switch model.screen {
 	case screenLogin:
-		builder.WriteString(m.login.view())
+		builder.WriteString(model.login.view())
 	case screenMenu:
-		builder.WriteString(m.menu.view())
+		builder.WriteString(model.menu.view())
 	case screenUsers:
-		builder.WriteString(m.users.view())
+		builder.WriteString(model.users.view())
 	case screenProducts:
-		builder.WriteString(m.products.view())
+		builder.WriteString(model.products.view())
 	case screenOrders:
-		builder.WriteString(m.orders.view())
+		builder.WriteString(model.orders.view())
 	}
 
 	view := tea.NewView(builder.String())

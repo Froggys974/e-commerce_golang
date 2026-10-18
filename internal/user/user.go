@@ -13,8 +13,8 @@ const (
 	RoleAdmin Role = "admin"
 )
 
-func (r Role) Valid() bool {
-	return r == RoleUser || r == RoleAdmin
+func (role Role) Valid() bool {
+	return role == RoleUser || role == RoleAdmin
 }
 
 type User struct {
@@ -37,16 +37,16 @@ type NotFoundError struct {
 	ID int64
 }
 
-func (e NotFoundError) Error() string {
-	return fmt.Sprintf("utilisateur %d introuvable", e.ID)
+func (err NotFoundError) Error() string {
+	return fmt.Sprintf("utilisateur %d introuvable", err.ID)
 }
 
 type EmailTakenError struct {
 	Email string
 }
 
-func (e EmailTakenError) Error() string {
-	return fmt.Sprintf("email %s déjà utilisé", e.Email)
+func (err EmailTakenError) Error() string {
+	return fmt.Sprintf("email %s déjà utilisé", err.Email)
 }
 
 type ValidationError struct {
@@ -54,6 +54,6 @@ type ValidationError struct {
 	Message string
 }
 
-func (e ValidationError) Error() string {
-	return fmt.Sprintf("%s : %s", e.Field, e.Message)
+func (err ValidationError) Error() string {
+	return fmt.Sprintf("%s : %s", err.Field, err.Message)
 }
