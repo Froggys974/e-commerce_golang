@@ -11,19 +11,13 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
-type tokensResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
-
 func (client *Client) Login(email, password string) error {
 	var tokens tokensResponse
 	err := client.do(http.MethodPost, "/auth/login", loginRequest{Email: email, Password: password}, &tokens)
 	if err != nil {
 		return err
 	}
-	client.accessToken = tokens.AccessToken
-	client.refreshToken = tokens.RefreshToken
+	client.setTokens(tokens)
 	return nil
 }
 
