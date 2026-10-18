@@ -49,68 +49,123 @@ Plateforme d'achat e-commerce dédiée aux clients sur interface en ligne de com
 ## Architecture
 
 ### Interfaces *(2 pts)*
-- **Client** : application en ligne de commande
-- **Administrateur** : application en ligne de commande séparée
-- Communication via serveur HTTP avec le module `net/http` (aucun framework)
+- **Client** et **administrateur** : deux applications en ligne de commande séparées (`cmd/client`, `cmd/admin`)
+- Elles communiquent avec une API HTTP écrite avec `net/http` uniquement (aucun framework)
+- Authentification par JWT (access token + refresh token)
 
 ### Persistance des données *(1 pt)*
-- Module `database/sql` uniquement (aucun ORM)
-- Base de données PostgreSQL via Docker, ou SQLite
+- Module `database/sql` uniquement (aucun ORM), driver `pgx`
+- Base de données PostgreSQL dans un conteneur Docker
+- Le schéma (`internal/db/schema.sql`) et les produits de démo (`internal/db/seed.sql`) sont appliqués au démarrage de l'API
 
 ### Charmbracelet *(3 pts)*
 Utilisation de [charm.land](https://charm.land) pour des interfaces réactives et vivantes :
-- [bubbletea](https://github.com/charmbracelet/bubbletea)
-- [bubbles](https://github.com/charmbracelet/bubbles)
-- [huh](https://github.com/charmbracelet/huh)
-- [lipgloss](https://github.com/charmbracelet/lipgloss)
+- [bubbletea](https://github.com/charmbracelet/bubbletea) : boucle de l'application (un `tea.Model` par application)
+- [bubbles](https://github.com/charmbracelet/bubbles) : tableaux, champ de recherche
+- [huh](https://github.com/charmbracelet/huh) : formulaires (connexion, inscription, paiement, admin)
+- [lipgloss](https://github.com/charmbracelet/lipgloss) : styles
+- [wish](https://github.com/charmbracelet/wish) : serveur SSH
 
 ### Interface SSH *(2 pts)*
-- Accès client et administrateur via SSH en plus du terminal classique
+- Accès au client et à l'administration via SSH, sans rien installer
+- Port `2222` : client, port `2223` : administration
+- Chaque connexion SSH a sa propre session (son propre modèle et ses propres tokens)
+
+---
+
+## Architecture
+
+```
+cmd/
+  api/        serveur HTTP
+  client/     application client (terminal)
+  admin/      application d'administration (terminal)
+  ssh/        serveur SSH qui sert le client et l'admin
+internal/
+  auth/ user/ product/ cart/ order/   un package par domaine : handler -> service -> repository
+  api/        routes et démarrage du serveur HTTP
+  db/         connexion, schéma et données de démo
+  mail/       envoi des codes par SMTP
+  ref/        génération des identifiants métier (PDT-, BSK-, CMD-)
+  apiclient/  client HTTP utilisé par les interfaces
+  tui/client/ tui/admin/   interfaces bubbletea
+  sshserver/  serveur SSH (wish)
+```
 
 ---
 
 ## Lancement
 
+### 1. Configuration (une seule fois)
+
 ```bash
-# Copier les variables d'environnement (à faire une seule fois)
 cp .env.example .env
-
-# Démarrer la base de données
-docker compose up -d
-
-# Démarrer le serveur
-docker compose exec go air (air sert a lancer le serveur en mode watch, settings dans .air.toml)
-
-test server : curl localhost:8000/health, doit retourner {"status":"ok"}
-
-# Lancer le client
-docker compose exec go go run ./cmd/client
-# go run main.go client
-
-
-# Lancer l'interface admin
-docker compose exec go go run ./cmd/admin
-# go run main.go admin
-
-# Emails (codes de confirmation / reset) : interface Mailpit
-http://localhost:8025
-
-# Formatage du code
-docker compose exec go gofmt -w .
 ```
+
+Dans `.env`, renseigner `JWT_SECRET` (32 caractères minimum, par exemple `openssl rand -hex 32`).
+Le compte administrateur est créé au démarrage de l'API à partir de `ADMIN_EMAIL` et `ADMIN_PASSWORD`.
+
+### 2. Démarrer les conteneurs
+
+```bash
+docker compose up -d
+```
+
+| Service | Adresse |
+|---|---|
+| API | http://localhost:8000 |
+| Adminer (base de données) | http://localhost:8080 |
+| Mailpit (codes de confirmation et de réinitialisation) | http://localhost:8025 |
+| SSH client / admin | ports `2222` / `2223` |
+
+### 3. Démarrer l'API
+
+```bash
+docker compose exec go air
+```
+
+`air` recompile et relance l'API à chaque modification (configuration dans `.air.toml`).
+Vérification : `curl localhost:8000/health` doit retourner `{"status":"ok"}`.
+
+### 4. Lancer les interfaces
+
+Dans le terminal :
+
+```bash
+docker compose exec go go run ./cmd/client
+docker compose exec go go run ./cmd/admin
+```
+
+Ou via SSH, après avoir démarré le serveur SSH dans un autre terminal :
+
+```bash
+docker compose exec go go run ./cmd/ssh
+
+ssh -p 2222 localhost   # client
+ssh -p 2223 localhost   # administration
+```
+
+Les interfaces appellent l'API sur `http://localhost:8000` par défaut. Pour en utiliser une autre (par exemple un tunnel ngrok), définir la variable `API_URL`.
 
 ---
 
-## Pénalités
+## Utilisation du client
 
-- Code non maîtrisé ou inexplicable
-- Utilisation abusive de l'IA
-- Utilisation de frameworks hors Charmbracelet
-- Non-respect des fonctionnalités
-- Dépassement du temps imparti en soutenance
-- Livrable absent sur MyGES
-- Livrable sous forme de lien Git (doit être une archive ZIP)
-- Participation inégale des membres du groupe
+| Écran | Touches |
+|---|---|
+| Connexion | `↑/↓` choisir, `entrée` valider, `échap` retour, `ctrl+r` renvoyer un code |
+| Catalogue | taper pour rechercher, `↑/↓` naviguer, `entrée` détail, `+` ajouter au panier, `tab` panier, `ctrl+o` commandes |
+| Panier | `+ / -` quantité, `suppr` retirer, `p` payer, `o` commandes, `échap` catalogue |
+| Commandes | `↑/↓` naviguer, `entrée` détail, `échap` retour |
 
-++ utilisation de la suite Charmbracelet (donc Huh, Bubbletea, Wish ? Lipgloss ?) 
-++ forward avec ngrok pendant soutenance pour acces global
+`ctrl+c` quitte l'application depuis n'importe quel écran.
+
+---
+
+## Développement
+
+```bash
+docker compose exec go go test ./...   # tests
+docker compose exec go go vet ./...    # analyse statique
+docker compose exec go gofmt -w .      # formatage
+```
