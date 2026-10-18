@@ -209,14 +209,3 @@ docker compose exec go gofmt -w .      # formatage
 ```
 
 ---
-
-## Pénalités
-
-- Code non maîtrisé ou inexplicable
-- Utilisation abusive de l'IA
-- Utilisation de frameworks hors Charmbracelet
-- Non-respect des fonctionnalités
-- Dépassement du temps imparti en soutenance
-- Livrable absent sur MyGES
-- Livrable sous forme de lien Git (doit être une archive ZIP)
-- Participation inégale des membres du groupe
