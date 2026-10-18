@@ -1,10 +1,8 @@
 package client
 
-import (
-	"fmt"
-)
+import "github.com/Froggys974/e-commerce_golang/internal/price"
 
+// 1999 -> 19,99 €
 func formatPrice(cents int64) string {
-	// 1999 -> 19,99 €
-	return fmt.Sprintf("%d,%02d €", cents/100, cents%100)
+	return price.Format(cents)
 }

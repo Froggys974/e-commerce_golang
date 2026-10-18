@@ -3,14 +3,33 @@ package apiclient
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/Froggys974/e-commerce_golang/internal/product"
 )
 
-func (client *Client) SearchProducts(name string) ([]product.Product, error) {
+func (client *Client) SearchProducts(filters product.SearchFilters) ([]product.Product, error) {
 	query := url.Values{}
-	if name != "" {
-		query.Set("name", name)
+	textFilters := map[string]string{
+		"name":        filters.Name,
+		"description": filters.Description,
+		"category":    filters.Category,
+	}
+	for param, value := range textFilters {
+		if value != "" {
+			query.Set(param, value)
+		}
+	}
+	priceFilters := map[string]*int64{
+		"min_price_ht":  filters.MinPriceHT,
+		"max_price_ht":  filters.MaxPriceHT,
+		"min_price_ttc": filters.MinPriceTTC,
+		"max_price_ttc": filters.MaxPriceTTC,
+	}
+	for param, cents := range priceFilters {
+		if cents != nil {
+			query.Set(param, strconv.FormatInt(*cents, 10))
+		}
 	}
 
 	var products []product.Product

@@ -73,7 +73,7 @@ Utilisation de [charm.land](https://charm.land) pour des interfaces réactives e
 
 ---
 
-## Architecture
+## Arborescence
 
 ```
 cmd/
@@ -147,6 +147,16 @@ ssh -p 2223 localhost   # administration
 
 Les interfaces appellent l'API sur `http://localhost:8000` par défaut. Pour en utiliser une autre (par exemple un tunnel ngrok), définir la variable `API_URL`.
 
+### 5. Accès à distance (soutenance)
+
+```bash
+ngrok tcp 2222    # client en SSH : ssh -p <port> <hôte> avec l'adresse donnée par ngrok
+ngrok tcp 2223    # administration en SSH
+ngrok http 8000   # API publique, pour une TUI lancée ailleurs : API_URL=https://xxx.ngrok.app
+```
+
+En SSH, rien à installer côté correcteur : le serveur SSH tourne à côté de l'API et l'appelle en local.
+
 ---
 
 ## Utilisation du client
@@ -154,11 +164,39 @@ Les interfaces appellent l'API sur `http://localhost:8000` par défaut. Pour en 
 | Écran | Touches |
 |---|---|
 | Connexion | `↑/↓` choisir, `entrée` valider, `échap` retour, `ctrl+r` renvoyer un code |
-| Catalogue | taper pour rechercher, `↑/↓` naviguer, `entrée` détail, `+` ajouter au panier, `tab` panier, `ctrl+o` commandes |
+| Catalogue | taper pour rechercher (voir ci-dessous), `↑/↓` naviguer, `entrée` détail, `+` ajouter au panier, `tab` panier, `ctrl+o` commandes |
 | Panier | `+ / -` quantité, `suppr` retirer, `p` payer, `o` commandes, `échap` catalogue |
 | Commandes | `↑/↓` naviguer, `entrée` détail, `échap` retour |
 
 `ctrl+c` quitte l'application depuis n'importe quel écran.
+
+Un compte non confirmé qui se connecte arrive sur l'écran de confirmation (`ctrl+r` pour recevoir un nouveau code).
+
+### Recherche
+
+Les mots sans préfixe cherchent dans le nom ; les préfixes ajoutent des filtres, combinables :
+
+| Préfixe | Filtre | Exemple |
+|---|---|---|
+| *(aucun)* | nom | `clavier` |
+| `cat:` | catégorie | `cat:livres` |
+| `desc:` | description | `desc:bio` |
+| `min:` / `max:` | prix TTC en euros | `max:49,99` |
+| `minht:` / `maxht:` | prix HT en euros | `minht:10` |
+
+Exemple : `clavier cat:informatique max:100`.
+
+---
+
+## Utilisation de l'administration
+
+| Écran | Touches |
+|---|---|
+| Menu | `↑/↓` naviguer, `entrée` ouvrir, `q` quitter |
+| Utilisateurs | `n` nouveau, `e` modifier (email, rôle), `c` confirmer, `r` basculer le rôle, `d` puis `o` supprimer |
+| Produits | `n` nouveau (prix HT en euros, TVA) |
+| Commandes | `entrée` détail, `s` changer le statut (seuls les passages autorisés sont proposés), `n` nouvelle commande pour un client |
+| Formulaires | `entrée` valider, `échap` annuler, `espace` cocher |
 
 ---
 
@@ -169,3 +207,5 @@ docker compose exec go go test ./...   # tests
 docker compose exec go go vet ./...    # analyse statique
 docker compose exec go gofmt -w .      # formatage
 ```
+
+---
