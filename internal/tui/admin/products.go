@@ -9,6 +9,7 @@ import (
 	"charm.land/huh/v2"
 
 	"github.com/Froggys974/e-commerce_golang/internal/apiclient"
+	"github.com/Froggys974/e-commerce_golang/internal/price"
 	"github.com/Froggys974/e-commerce_golang/internal/product"
 )
 
@@ -57,7 +58,7 @@ func (model productsScreen) init() tea.Cmd {
 
 func loadProductsCmd(api *apiclient.Client) tea.Cmd {
 	return func() tea.Msg {
-		products, err := api.SearchProducts("")
+		products, err := api.SearchProducts(product.SearchFilters{})
 		return productsLoadedMsg{products: products, err: err}
 	}
 }
@@ -112,7 +113,7 @@ func (model productsScreen) openNewProductForm() (productsScreen, tea.Cmd) {
 			huh.NewInput().Title("Prix HT en euros (ex : 19,99)").
 				Value(&model.newProduct.price).
 				Validate(func(value string) error {
-					_, err := parseEuros(value)
+					_, err := price.ParseEuros(value)
 					return err
 				}),
 			huh.NewSelect[int]().Title("TVA").
@@ -143,7 +144,7 @@ func (model productsScreen) updateForm(msg tea.Msg) (productsScreen, tea.Cmd) {
 
 	fields := *model.newProduct
 	model.form = nil
-	priceCents, _ := parseEuros(fields.price)
+	priceCents, _ := price.ParseEuros(fields.price)
 	input := apiclient.CreateProductInput{
 		Name:         fields.name,
 		Description:  fields.description,

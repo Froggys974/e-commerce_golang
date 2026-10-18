@@ -114,7 +114,7 @@ func loadOrderFormDataCmd(api *apiclient.Client) tea.Cmd {
 		if err != nil {
 			return orderFormDataMsg{err: err}
 		}
-		products, err := api.SearchProducts("")
+		products, err := api.SearchProducts(product.SearchFilters{})
 		return orderFormDataMsg{users: users, products: products, err: err}
 	}
 }

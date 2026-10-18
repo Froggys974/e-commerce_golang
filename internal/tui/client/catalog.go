@@ -44,12 +44,13 @@ type catalog struct {
 	selectedOrder *order.Order
 	status        string
 	err           error
+	searchErr     error
 }
 
 func newCatalog(api *apiclient.Client) catalog {
 	search := textinput.New()
-	search.Placeholder = "rechercher par nom..."
-	search.SetWidth(40)
+	search.Placeholder = "nom, ou ex : clavier cat:informatique max:100"
+	search.SetWidth(60)
 	search.Focus()
 
 	productTable := table.New(
@@ -74,12 +75,12 @@ func newCatalog(api *apiclient.Client) catalog {
 }
 
 func (model catalog) Init() tea.Cmd {
-	return searchCmd(model.api, "")
+	return searchCmd(model.api, "", product.SearchFilters{})
 }
 
-func searchCmd(api *apiclient.Client, query string) tea.Cmd {
+func searchCmd(api *apiclient.Client, query string, filters product.SearchFilters) tea.Cmd {
 	return func() tea.Msg {
-		products, err := api.SearchProducts(query)
+		products, err := api.SearchProducts(filters)
 		return searchResultMsg{query: query, products: products, err: err}
 	}
 }
@@ -193,7 +194,12 @@ func (model catalog) updateList(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	model.search, cmd = model.search.Update(msg)
 	if model.search.Value() != previousQuery {
-		return model, tea.Batch(cmd, searchCmd(model.api, model.search.Value()))
+		filters, err := parseSearch(model.search.Value())
+		model.searchErr = err
+		if err != nil {
+			return model, cmd
+		}
+		return model, tea.Batch(cmd, searchCmd(model.api, model.search.Value(), filters))
 	}
 	return model, cmd
 }
@@ -230,6 +236,12 @@ func (model catalog) listView() string {
 	builder.WriteString(titleStyle.Render("Catalogue"))
 	builder.WriteString("\n\n")
 	builder.WriteString(model.search.View())
+	builder.WriteString("\n")
+	if model.searchErr != nil {
+		builder.WriteString(errorStyle.Render("✗ " + model.searchErr.Error()))
+	} else {
+		builder.WriteString(helpStyle.Render(searchSyntax))
+	}
 	builder.WriteString("\n\n")
 	builder.WriteString(model.table.View())
 	builder.WriteString("\n\n")
