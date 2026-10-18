@@ -11,6 +11,7 @@ type fakeRepository struct {
 	createdItems  []ItemInput
 	updateCalls   int
 	currentStatus Status
+	updatedFrom   Status
 }
 
 func (fake *fakeRepository) CreateFromCart(ctx context.Context, userID int64, orderRef, cardLast4 string) error {
@@ -34,8 +35,9 @@ func (fake *fakeRepository) ListAll(ctx context.Context) ([]Order, error) {
 	return nil, nil
 }
 
-func (fake *fakeRepository) UpdateStatus(ctx context.Context, orderRef string, status Status, reason string) error {
+func (fake *fakeRepository) UpdateStatus(ctx context.Context, orderRef string, previous, status Status, reason string) error {
 	fake.updateCalls++
+	fake.updatedFrom = previous
 	return nil
 }
 
@@ -152,6 +154,10 @@ func TestUpdateStatusTransitions(t *testing.T) {
 
 			if testCase.allowed && err != nil {
 				t.Fatalf("erreur inattendue : %v", err)
+			}
+			// le statut lu doit partir au repo pour le WHERE de l UPDATE
+			if testCase.allowed && repo.updatedFrom != testCase.current {
+				t.Errorf("statut attendu dans le WHERE = %s; reçu %s", testCase.current, repo.updatedFrom)
 			}
 			if !testCase.allowed && (err == nil || repo.updateCalls != 0) {
 				t.Fatalf("passage %s -> %s aurait dû être refusé", testCase.current, testCase.next)
