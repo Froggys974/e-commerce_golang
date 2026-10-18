@@ -69,6 +69,7 @@ var (
 	ErrNotFound        = errors.New("commande introuvable")
 	ErrProductNotFound = errors.New("produit introuvable")
 	ErrUserNotFound    = errors.New("utilisateur introuvable")
+	ErrStatusChanged   = errors.New("statut modifié entre-temps, recharge la commande")
 )
 
 type ValidationError struct {

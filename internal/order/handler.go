@@ -115,6 +115,8 @@ func writeError(w http.ResponseWriter, err error) {
 		httpjson.Error(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, ErrNotFound), errors.Is(err, ErrProductNotFound), errors.Is(err, ErrUserNotFound):
 		httpjson.Error(w, http.StatusNotFound, err.Error())
+	case errors.Is(err, ErrStatusChanged):
+		httpjson.Error(w, http.StatusConflict, err.Error())
 	default:
 		log.Printf("order: %v", err)
 		httpjson.Error(w, http.StatusInternalServerError, "Erreur serveur")

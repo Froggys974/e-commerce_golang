@@ -150,10 +150,10 @@ func (repo *Repository) ListAll(ctx context.Context) ([]Order, error) {
 	return repo.list(ctx, selectOrders+" ORDER BY o.created_at DESC, o.id DESC, p.name")
 }
 
-func (repo *Repository) UpdateStatus(ctx context.Context, orderRef string, status Status, reason string) error {
+func (repo *Repository) UpdateStatus(ctx context.Context, orderRef string, previous, status Status, reason string) error {
 	result, err := repo.db.ExecContext(ctx,
-		`UPDATE orders SET status = $2, cancel_reason = NULLIF($3, '') WHERE ref = $1`,
-		orderRef, status, reason,
+		`UPDATE orders SET status = $2, cancel_reason = NULLIF($3, '') WHERE ref = $1 AND status = $4`,
+		orderRef, status, reason, previous,
 	)
 	if err != nil {
 		return fmt.Errorf("changement de statut : %w", err)
@@ -163,7 +163,7 @@ func (repo *Repository) UpdateStatus(ctx context.Context, orderRef string, statu
 		return fmt.Errorf("changement de statut : %w", err)
 	}
 	if rowsAffected == 0 {
-		return ErrNotFound
+		return ErrStatusChanged
 	}
 	return nil
 }

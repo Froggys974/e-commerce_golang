@@ -16,7 +16,7 @@ type repository interface {
 	FindByRef(ctx context.Context, orderRef string) (Order, error)
 	ListByUser(ctx context.Context, userID int64) ([]Order, error)
 	ListAll(ctx context.Context) ([]Order, error)
-	UpdateStatus(ctx context.Context, orderRef string, status Status, reason string) error
+	UpdateStatus(ctx context.Context, orderRef string, previous, status Status, reason string) error
 }
 
 const (
@@ -83,7 +83,7 @@ func (service *Service) UpdateStatus(ctx context.Context, orderRef string, statu
 		return Order{}, ValidationError{Field: "status", Message: fmt.Sprintf("passage de %s à %s interdit", current.Status, status)}
 	}
 
-	if err := service.repo.UpdateStatus(ctx, orderRef, status, reason); err != nil {
+	if err := service.repo.UpdateStatus(ctx, orderRef, current.Status, status, reason); err != nil {
 		return Order{}, err
 	}
 	return service.repo.FindByRef(ctx, orderRef)
