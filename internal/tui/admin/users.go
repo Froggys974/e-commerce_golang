@@ -24,6 +24,12 @@ type newUserFields struct {
 	role     user.Role
 }
 
+type editUserFields struct {
+	id    int64
+	email string
+	role  user.Role
+}
+
 type usersScreen struct {
 	api           *apiclient.Client
 	currentUserID int64
@@ -32,6 +38,7 @@ type usersScreen struct {
 	feedback      feedback
 	form          *huh.Form
 	newUser       *newUserFields
+	editUser      *editUserFields
 	confirmDelete bool
 }
 
@@ -123,6 +130,8 @@ func (model usersScreen) updateKeys(keyPress tea.KeyPressMsg) (usersScreen, tea.
 	isSelf := selected.ID == model.currentUserID
 
 	switch key {
+	case "e":
+		return model.openEditUserForm(selected, isSelf)
 	case "c":
 		if selected.Confirmed {
 			model.feedback = feedback{text: "compte déjà confirmé"}
@@ -162,7 +171,25 @@ func (model usersScreen) selected() (user.User, bool) {
 	return model.users[model.table.Cursor()], true
 }
 
+func (model usersScreen) openEditUserForm(selected user.User, isSelf bool) (usersScreen, tea.Cmd) {
+	model.newUser = nil
+	model.editUser = &editUserFields{id: selected.ID, email: selected.Email, role: selected.Role}
+
+	fields := []huh.Field{
+		huh.NewInput().Title("Email").Value(&model.editUser.email).Validate(required),
+	}
+	if !isSelf {
+		fields = append(fields, huh.NewSelect[user.Role]().Title("Rôle").
+			Options(huh.NewOption("client", user.RoleUser), huh.NewOption("admin", user.RoleAdmin)).
+			Value(&model.editUser.role))
+	}
+	model.form = huh.NewForm(huh.NewGroup(fields...)).WithShowHelp(false)
+	model.feedback = feedback{}
+	return model, model.form.Init()
+}
+
 func (model usersScreen) openNewUserForm() (usersScreen, tea.Cmd) {
+	model.editUser = nil
 	model.newUser = &newUserFields{role: user.RoleUser}
 	model.form = huh.NewForm(
 		huh.NewGroup(
@@ -201,8 +228,16 @@ func (model usersScreen) updateForm(msg tea.Msg) (usersScreen, tea.Cmd) {
 		return model, cmd
 	}
 
-	fields := *model.newUser
 	model.form = nil
+	if model.editUser != nil {
+		edited := *model.editUser
+		model.editUser = nil
+		return model, actionCmd("utilisateur "+edited.email+" modifié", func() error {
+			return model.api.UpdateUser(edited.id, edited.email, edited.role)
+		})
+	}
+
+	fields := *model.newUser
 	return model, actionCmd("utilisateur "+fields.email+" créé", func() error {
 		return model.api.CreateUser(fields.email, fields.password, fields.role)
 	})
@@ -220,7 +255,7 @@ func (model usersScreen) view() string {
 
 	builder.WriteString(model.table.View() + "\n\n")
 	builder.WriteString(model.feedback.view())
-	builder.WriteString(helpStyle.Render(fmt.Sprintf("%d utilisateur(s) • ↑/↓ naviguer • n nouveau • c confirmer • r changer rôle • d supprimer • échap menu", len(model.users))))
+	builder.WriteString(helpStyle.Render(fmt.Sprintf("%d utilisateur(s) • ↑/↓ naviguer • n nouveau • e modifier • c confirmer • r changer rôle • d supprimer • échap menu", len(model.users))))
 	return builder.String()
 }
 
