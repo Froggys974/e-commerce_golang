@@ -8,8 +8,9 @@ import (
 )
 
 type fakeRepository struct {
-	createdItems []ItemInput
-	updateCalls  int
+	createdItems  []ItemInput
+	updateCalls   int
+	currentStatus Status
 }
 
 func (fake *fakeRepository) CreateFromCart(ctx context.Context, userID int64, orderRef, cardLast4 string) error {
@@ -22,7 +23,7 @@ func (fake *fakeRepository) Create(ctx context.Context, userID int64, orderRef s
 }
 
 func (fake *fakeRepository) FindByRef(ctx context.Context, orderRef string) (Order, error) {
-	return Order{Ref: orderRef}, nil
+	return Order{Ref: orderRef, Status: fake.currentStatus}, nil
 }
 
 func (fake *fakeRepository) ListByUser(ctx context.Context, userID int64) ([]Order, error) {
@@ -53,6 +54,7 @@ func TestValidateCard(t *testing.T) {
 		wantField string
 	}{
 		{"numéro trop court", Card{Number: "4242", ExpMonth: 12, ExpYear: 2027, CVC: "123"}, "card_number"},
+		{"numéro faux (Luhn)", Card{Number: "4242424242424241", ExpMonth: 12, ExpYear: 2027, CVC: "123"}, "card_number"},
 		{"numéro avec lettres", Card{Number: "4242 4242 4242 42AB", ExpMonth: 12, ExpYear: 2027, CVC: "123"}, "card_number"},
 		{"mois invalide", Card{Number: "4242424242424242", ExpMonth: 13, ExpYear: 2027, CVC: "123"}, "exp_month"},
 		{"carte expirée", Card{Number: "4242424242424242", ExpMonth: 9, ExpYear: 2026, CVC: "123"}, "exp_year"},
@@ -123,5 +125,37 @@ func TestCreateForUserMergesDuplicates(t *testing.T) {
 	var validationErr ValidationError
 	if !errors.As(err, &validationErr) {
 		t.Errorf("sans produit : erreur = %v; attendu une ValidationError", err)
+	}
+}
+
+func TestUpdateStatusTransitions(t *testing.T) {
+	testCases := []struct {
+		current Status
+		next    Status
+		allowed bool
+	}{
+		{StatusPending, StatusPaid, true},
+		{StatusPaid, StatusShipping, true},
+		{StatusShipping, StatusDelivered, true},
+		{StatusPaid, StatusCancelled, true},
+		{StatusPending, StatusDelivered, false},
+		{StatusDelivered, StatusCancelled, false},
+		{StatusCancelled, StatusDelivered, false},
+		{StatusShipping, StatusPaid, false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(string(testCase.current)+"->"+string(testCase.next), func(t *testing.T) {
+			repo := &fakeRepository{currentStatus: testCase.current}
+
+			_, err := NewService(repo).UpdateStatus(context.Background(), "CMD-AAAAAA", testCase.next, "raison")
+
+			if testCase.allowed && err != nil {
+				t.Fatalf("erreur inattendue : %v", err)
+			}
+			if !testCase.allowed && (err == nil || repo.updateCalls != 0) {
+				t.Fatalf("passage %s -> %s aurait dû être refusé", testCase.current, testCase.next)
+			}
+		})
 	}
 }

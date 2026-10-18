@@ -42,6 +42,11 @@ func Run() error {
 	}
 	log.Println("Schema ok")
 
+	if err := db.Seed(database); err != nil {
+		return err
+	}
+	log.Println("Produits de démo ok")
+
 	userService := user.NewService(user.NewRepository(database), user.HashPassword, user.CheckPassword)
 	authService := auth.NewService(userService, auth.NewRepository(database), []byte(secret))
 

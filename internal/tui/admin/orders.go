@@ -186,13 +186,19 @@ func (model ordersScreen) update(msg tea.Msg) (ordersScreen, tea.Cmd) {
 }
 
 func (model ordersScreen) openStatusForm(current order.Order) (ordersScreen, tea.Cmd) {
-	fields := &statusFields{orderRef: current.Ref, status: current.Status}
-	model.status = fields
-
 	options := make([]huh.Option[order.Status], 0, len(order.Statuses))
 	for _, status := range order.Statuses {
-		options = append(options, huh.NewOption(statusLabel(status), status))
+		if current.Status.CanBecome(status) {
+			options = append(options, huh.NewOption(statusLabel(status), status))
+		}
 	}
+	if len(options) == 0 {
+		model.feedback = feedback{text: current.Ref + " est " + statusLabel(current.Status) + " : statut définitif", isError: true}
+		return model, nil
+	}
+
+	fields := &statusFields{orderRef: current.Ref, status: options[0].Value}
+	model.status = fields
 
 	model.form = huh.NewForm(
 		huh.NewGroup(

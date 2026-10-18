@@ -23,6 +23,16 @@ func (status Status) Valid() bool {
 	return slices.Contains(Statuses, status)
 }
 
+var transitions = map[Status][]Status{
+	StatusPending:  {StatusPaid, StatusCancelled},
+	StatusPaid:     {StatusShipping, StatusCancelled},
+	StatusShipping: {StatusDelivered, StatusCancelled},
+}
+
+func (status Status) CanBecome(next Status) bool {
+	return slices.Contains(transitions[status], next)
+}
+
 type Item struct {
 	ProductRef        string `json:"product_ref"`
 	ProductName       string `json:"product_name"`

@@ -75,6 +75,14 @@ func (service *Service) UpdateStatus(ctx context.Context, orderRef string, statu
 	}
 
 	orderRef = strings.ToUpper(strings.TrimSpace(orderRef))
+	current, err := service.repo.FindByRef(ctx, orderRef)
+	if err != nil {
+		return Order{}, err
+	}
+	if !current.Status.CanBecome(status) {
+		return Order{}, ValidationError{Field: "status", Message: fmt.Sprintf("passage de %s à %s interdit", current.Status, status)}
+	}
+
 	if err := service.repo.UpdateStatus(ctx, orderRef, status, reason); err != nil {
 		return Order{}, err
 	}
@@ -127,6 +135,9 @@ func validateCard(card Card, now time.Time) (string, error) {
 	if len(number) != 16 || !isDigits(number) {
 		return "", ValidationError{Field: "card_number", Message: "16 chiffres"}
 	}
+	if !passesLuhn(number) {
+		return "", ValidationError{Field: "card_number", Message: "numéro de carte invalide"}
+	}
 	if card.ExpMonth < 1 || card.ExpMonth > 12 {
 		return "", ValidationError{Field: "exp_month", Message: "doit être entre 1 et 12"}
 	}
@@ -137,6 +148,25 @@ func validateCard(card Card, now time.Time) (string, error) {
 		return "", ValidationError{Field: "cvc", Message: "3 chiffres"}
 	}
 	return number[12:], nil
+}
+
+// algorithme de Luhn : en partant de la droite, on double un chiffre sur deux
+// Détecte les fautes de frappe, pas les fausses cartes.
+func passesLuhn(number string) bool {
+	sum := 0
+	double := false
+	for index := len(number) - 1; index >= 0; index-- {
+		digit := int(number[index] - '0')
+		if double {
+			digit *= 2
+			if digit > 9 {
+				digit -= 9
+			}
+		}
+		sum += digit
+		double = !double
+	}
+	return sum%10 == 0
 }
 
 func isDigits(text string) bool {

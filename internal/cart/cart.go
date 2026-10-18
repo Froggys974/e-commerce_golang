@@ -7,7 +7,7 @@ import (
 
 type Item struct {
 	ProductRef        string `json:"product_ref"`
-	Name              string `json:"name"`
+	Name              string `json:"product_name"`
 	Quantity          int    `json:"quantity"`
 	UnitPriceTTCCents int64  `json:"unit_price_ttc_cents"`
 	LineTotalCents    int64  `json:"line_total_cents"`
